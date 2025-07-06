@@ -1,14 +1,18 @@
-'''Name
-Last edited: M D, Y
+'''Discord Bot Template
+Author(s): Sunny Lin
+Editor(s): N/A
+Last edited: Jul 5, 25
 
-Description & notes.
-
-TODO: Fill out information above.
+This is a template file for starting to program Discord bots in Python.
+It should have most features a basic bot could need like command functions and auto functions.
 This file is not meant to be run.
+
+TODO: Fill out information above according to your bot's purposes.
 '''
 
 import discord
 from discord.ext import commands
+...
 
 # Constants:
 ...
