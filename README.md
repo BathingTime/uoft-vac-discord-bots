@@ -12,7 +12,21 @@ Unauthorised access to this data could allow someone to take control of the bots
 ### Implementation
 Currently, the bots are programmed in **Python** using the Python discord package.
 
-I've also included a a rough [template](Bot-Template.py) file that I wrote for starting to program new Discord bots in case the club ever wants more.
+I've also included a a rough [template](bot_template.py) file that I wrote for starting to program new Discord bots in case the club ever wants more.
+
+---
+### Organisation
+
+Refer to [Frodo Meet](frodo_meet) as an example bot folder.
+
+All bots should have their own folder under this repo, and all files specific to a bot should be kept in their folder.\
+Furthermore, all files required for hosting should be in a **files** subfolder (other than the [common](common_bot_helper.py) bot helper file).
+> A bot will likely have these files for hosting:
+> - Driver file: Uses the Python discord package to communicate with Discord. Uses functions from helper files to do computation & get outputs ([e.g.](frodo_meet/host_files/frodo_meet.py)).
+> - Helper file(s): Contains helper functions for computing a bot's output. Isolated from Discord functions to allow easy testing ([e.g.](frodo_meet/host_files/frodo_meet_helper.py)).
+> - Data file(s): If a bot needs to store data. Likely written to/fetched from by helper files ([e.g.](frodo_meet/host_files/meeting_entries.txt)).
+
+When editing a bot or starting a new one, try to be consistent with its and other bots' organisation, unless the bot's functionality requires otherwise.
 
 ---
 ### Hosting
@@ -35,15 +49,21 @@ Upon replacing blocks of code, **comment** old code and keep it in the file for 
 > If commented code gets too crowded, designate a dedicated section for deprecated code (e.g. at the bottom of the file).\
 If a large enough portion of a file's code has been replaced, writing a new file could be more efficient (follow instructions below).
 
-Upon replacing entire files, move old files into the [archive](archive) so they can always be referred back to.
+Upon replacing entire files, move old files into the [**archive**](archive) so they can always be referred back to.
 > The internal organisation of the archive is up to future webmasters' discretion.\
 I suggest at least adding to the deprecated file names the **year they were replaced** (i.e. current year, relatively speaking).
 > - E.g. If this year was 2025, then `README.md` would become `README-2025.md` in the archive.
 
+Morover, always employ good code practices:
+- Make code readable (meaningful names, type annotations, organise & distinguish tasks, etc).
+- Explain your thoughts (write code comments, function docstrings & tests, file documentations, meaningful commit messages, etc).
+
+This will help not only you but also fellow & future webmasters.
+
 ---
 ###
-And last but not least, <mark>communicate with the team, be responsible, and do your best</mark> : )\
-And **have fun** if you have energy to spare ; )
+And last but not least, <mark>communicate with the team, be responsible, and do your best!</mark>\
+Oh, and **have fun** as well ; )
 
 ### Cheers!
 \- SL
