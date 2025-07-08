@@ -6,7 +6,7 @@ Last edited: Jul 6, 25
 Uoft Visual Arts Club exec team's Discord bot for easy meeting plan management.
 
 Can add, cancel, & edit meeting plans with Discord commands.
-Meeting plan information includes: title, details, time (date + hour), & participants.
+Meeting plan information includes: title, details, time (date + hour & minute), & participants.
 Also notifies meeting members when a meeting is about to take place.
 
 Uses helper functions from common_bot_helper.py & frodo_meet_helper.py.
