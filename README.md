@@ -55,8 +55,12 @@ I suggest at least adding to the deprecated file names the **year they were repl
 > - E.g. If this year was 2025, then `README.md` would become `README-2025.md` in the archive.
 
 Morover, always employ good code practices:
-- Make code readable (meaningful names, type annotations, organise & distinguish tasks, etc).
-- Explain your thoughts (write code comments, function docstrings & tests, file documentations, meaningful commit messages, etc).
+- Write readable code (meaningful names, type annotations, organise & distinguish tasks).
+- Express your ideas (write code comments, function docstrings & tests, file documentations, meaningful commit messages).
+- Communicate with the team (announce when you've made significant changes, meaningful commit messages).
+- Write TODO comments for any potential development.
+    - Small tasks can be written where they should be.
+    - Larger tasks can be written below the file description at the top.
 
 This will help not only you but also fellow & future webmasters.
 
