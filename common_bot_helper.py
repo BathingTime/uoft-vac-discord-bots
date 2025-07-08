@@ -6,14 +6,23 @@ Last edited: Jul 6, 25
 This file contains functions that many bots will likely find useful.
 '''
 
+def get_file_lines(file_path: str) -> tuple[str]:
+    '''Return a tuple of the stripped lines from a file.
+    Allows for testing on functions that read from a file.
+
+    Sample usage inapplicable.
+    '''
+    with open(file_path, 'r') as file_read:
+        return tuple(line.strip() for line in file_read.readlines())
+
 def write_file(file_path: str, output: list[str]) -> None:
     '''Write a given list of strings to a given txt file.
     Each element in the output list is a line to be written.
 
     Sample usage inapplicable.
     '''
-    with open(file_path, 'w') as file_writer:
-        file_writer.write('\n'.join(output))
+    with open(file_path, 'w') as file_write:
+        file_write.write('\n'.join(output))
 
 def chop_output(output: str, limit: int) -> tuple[str]:
     '''Given a string to be outputted, return a tuple containing chopped parts of the output
