@@ -54,11 +54,11 @@ Upon replacing entire files, move old files into the [**archive**](archive) so t
 I suggest at least adding to the deprecated file names the **year they were replaced** (i.e. current year, relatively speaking).
 > - E.g. If this year was 2025, then `README.md` would become `README-2025.md` in the archive.
 
-Morover, always employ good code practices:
+Moreover, always employ good code practices:
 - Write readable code (meaningful names, type annotations, organise & distinguish tasks).
 - Express your ideas (write code comments, function docstrings & tests, file documentations, meaningful commit messages).
 - Communicate with the team (announce when you've made significant changes, meaningful commit messages).
-- Write TODO comments for any potential development.
+- Write <mark>TODO</mark> comments for any potential development.
     - Small tasks can be written where they should be.
     - Larger tasks can be written below the file description at the top.
 
