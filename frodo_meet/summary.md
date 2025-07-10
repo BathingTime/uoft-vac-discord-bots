@@ -15,10 +15,11 @@ Each entry consists of 5 lines for 5 pieces of info:
 3. Details.
     - Can store any single **formatted** Discord message.
 4. Participants: list of pings, separated by spaces.
-    - For **members**, use their <u>user ID</u>.
-    - For **roles**, use `&…`, where … is the <u>role ID</u>.
+    - For **members**, use `<u>…` where … is the <u>user ID</u>.
+    - For **roles**, use `<r>…`, where … is the <u>role ID</u>.
     - For **everyone**, use `everyone`.
     - **Here** seems reduntant for our purposes, but it works like everyone nonetheless.
+    - The `<u>` and `<r>` are indicators for replacing IDs with names in the driver file (since this uses the Discord API).
 5. Labels: list of labels, separated by spaces.
 
 Entries are stored in <mark>chronological order based on date</mark>.
