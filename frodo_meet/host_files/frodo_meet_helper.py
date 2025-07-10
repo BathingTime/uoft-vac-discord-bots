@@ -5,10 +5,26 @@ Last edited: Jul 6, 25
 
 This file contains functions for computing outputs for frodo-meet.py.
 '''
+# Public packages:
 from datetime import datetime
+
+# Get the parent repo.
+from sys import path as sys_path
+from os import path as os_path
+
+repo = os_path.abspath(os_path.join(__file__, *('..',) * 3))
+sys_path.append(repo)
+
+# Local Python files:
+import common_bot_helper
 
 
 # Constants:
+
+# Tuple of stripped lines from meeting_entries_sample.txt.
+# Use this in doctests.
+SAMPLE_ENTRIES_LINES = common_bot_helper.get_file_lines('frodo_meet/meeting_entries_sample.txt')
+
 NOTICE_TIME = 600 # Notify meetings that will begin in less than this value of seconds.
 
 ENTRY_INFOS = (
@@ -34,50 +50,39 @@ def get_entries(lines: tuple[str]) -> list[dict]:
     'title', 'time', 'details', 'participants', 'labels', each with their respective values.
 
     Sample Usage:
+    >>> result = get_entries(SAMPLE_ENTRIES_LINES)
+    >>> entry_1 = result[0]
 
-    >>> result = get_entries((
-    ... "title: General Meeting 1",
-    ... "time: 2025 06 07 19 00",
-    ... "details: Our first exec meeting…",
-    ... "participants: @everyone",
-    ... "labels: SOON",
-    ... "",
-    ... "title: Weekly Event Recap",
-    ... "time: 2025 06 13 19 00",
-    ... "details: Go over today's event…",
-    ... "participants: &11111",
-    ... "labels: WEEKLY PAUSED",
-    ... ""
-    ... ))
-
-    >>> result[0]['title']
+    >>> entry_1['title']
     'General Meeting 1'
 
-    >>> result[0]['time']
+    >>> entry_1['time']
     [2025, 6, 7, 19, 0]
 
-    >>> result[0]['details']
-    'Our first exec meeting…'
+    >>> entry_1['details']
+    'Our first exec meeting of the year! Get to know each other and a run down on club operations.'
 
-    >>> result[0]['participants']
-    ['@everyone']
+    >>> entry_1['participants']
+    ['everyone']
 
-    >>> result[0]['labels']
+    >>> entry_1['labels']
     ['SOON']
 
-    >>> result[1]['title']
+    >>> entry_2 = result[1]
+
+    >>> entry_2['title']
     'Weekly Event Recap'
 
-    >>> result[1]['time']
+    >>> entry_2['time']
     [2025, 6, 13, 19, 0]
 
-    >>> result[1]['details']
-    "Go over today's event…"
+    >>> entry_2['details']
+    "Go over today's event. How did it go, anything nice, any improvements for the future, etc."
 
-    >>> result[1]['participants']
-    ['&11111']
+    >>> entry_2['participants']
+    ['<r>11111']
 
-    >>> result[1]['labels']
+    >>> entry_2['labels']
     ['WEEKLY', 'PAUSED']
     '''
     # Make an empty list to be returned.
@@ -178,36 +183,36 @@ def to_display(args: tuple[str], labels: list[str], index: int) -> bool:
     ''''Returns if a meeting plan should be displayed according to the arguments.
 
     Sample Usage:
-    >>> to_display(('all', 'WEEKLY', '-1'), ['WEEKLY', 'PAUSED'], 1)
+    >>> to_display(('ALL', 'WEEKLY', '-1'), ['WEEKLY', 'PAUSED'], 0)
     False
 
-    >>> to_display(('-all', '-PAUSED', '1'), ['WEEKLY', 'PAUSED'], 1)
+    >>> to_display(('-ALL', '-PAUSED', '1'), ['WEEKLY', 'PAUSED'], 0)
     True
 
-    >>> to_display(('-all', 'WEEKLY', '-PAUSED', '2'), ['WEEKLY', 'PAUSED'], 1)
+    >>> to_display(('-ALL', 'WEEKLY', '-PAUSED', '2'), ['WEEKLY', 'PAUSED'], 0)
     True
 
-    >>> to_display(('all', '-PAUSED', '2'), ['WEEKLY', 'PAUSED'], 1)
+    >>> to_display(('ALL', '-PAUSED', '2'), ['WEEKLY', 'PAUSED'], 0)
     False
 
-    >>> to_display(('all', 'SOON', '2'), ['WEEKLY', 'PAUSED'], 1)
+    >>> to_display(('ALL', 'SOON', '2'), ['WEEKLY', 'PAUSED'], 0)
     True
 
-    >>> to_display(('-all', 'SOON', '2'), ['WEEKLY', 'PAUSED'], 1)
+    >>> to_display(('-ALL', 'SOON', '2'), ['WEEKLY', 'PAUSED'], 0)
     False
 
-    >>> to_display(('SOON', '2'), ['WEEKLY', 'PAUSED'], 1)
+    >>> to_display(('SOON', '2'), ['WEEKLY', 'PAUSED'], 0)
     False
 
-    >>> to_display(('SOON', '2'), ['WEEKLY'], 1)
+    >>> to_display(('SOON', '2'), ['WEEKLY'], 0)
     True
     '''
     # If the entry's index is a -argument, it won't be displayed.
-    if '-' + str(index) in args:
+    if '-' + str(index + 1) in args:
         return False
     
     # Else if the entry's index is an argument, it will be displayed.
-    if str(index) in args:
+    if str(index + 1) in args:
         return True
     
     has_nlabel = False
@@ -227,19 +232,19 @@ def to_display(args: tuple[str], labels: list[str], index: int) -> bool:
         return False
     
     # Else if "all" is an argument, it will be displayed.
-    if 'all' in args:
+    if 'ALL' in args:
         return True
     
     # Else if "-all" is an argument, it will not be displayed.
-    if '-all' in args:
+    if '-ALL' in args:
         return False
     
     # Else, it will be displayed if it is active (has no CANCELED or PAUSED label).
-    return not (LABELS[2] in labels or LABELS[4] in labels)
+    return not (LABELS[1] in labels or LABELS[3] in labels)
 
 
 # Bot command functions:
-def show(args: tuple[str], entries:list[dict], now: datetime) -> tuple[bool, str]:
+def show(args: tuple[str], entries:list[dict], now: tuple[int]) -> tuple[bool, str]:
     '''Display the list of meeting plans in order.
     Along with displaying times, also include how much time the meeting is from now.
 
@@ -259,31 +264,25 @@ def show(args: tuple[str], entries:list[dict], now: datetime) -> tuple[bool, str
     - There cannot be a + and - argument with the same label/index.
 
     Sample Usage:
-    >>> sample_entries = [
-    ... {
-    ... 'title': "General Meeting 1",
-    ... 'time': [2025, 6, 7, 19, 0],
-    ... 'details': "Our first exec meeting…",
-    ... 'participants': ['@everyone'],
-    ... 'labels': ['SOON']
-    ... },
-    ... {
-    ... 'title': "Weekly Event Recap",
-    ... 'time': [2025, 6, 13, 19, 0],
-    ... 'details': "Go over today's event…",
-    ... 'participants': ['&11111'],
-    ... 'labels': ['WEEKLY', 'PAUSED']
-    ... },
-    ... {
-    ... 'title': "Webmasters 2 - Website",
-    ... 'time': [2025, 6, 17, 20, 0],
-    ... 'details': "Go over how we should…",
-    ... 'participants': ['22222', '33333'],
-    ... 'labels': []
-    ... }
-    ... ]
+    >>> sample_entries = get_entries(SAMPLE_ENTRIES_LINES)
 
-    # >>> show((), sample_entries, (2025, 6, 7, 18, 55))
+    >>> show((), sample_entries, (2025, 6, 7, 18, 55))
+    '# 1. General Meeting 1 (SOON)\\n**2025-06-07 19:00:00 (0:05:00 left)**\\n\\n# 3. Webmasters 2 - Website\\n**2025-06-17 20:00:00 (10 days, 1:05:00 left)**'
+
+    >>> show(('full',), sample_entries, (2025, 6, 7, 18, 55))
+    "# 1. General Meeting 1 (SOON)\\n**2025-06-07 19:00:00 (0:05:00 left)**\\nOur first exec meeting of the year! Get to know each other and a run down on club operations.\\n**Participants:** everyone\\n\\n# 3. Webmasters 2 - Website\\n**2025-06-17 20:00:00 (10 days, 1:05:00 left)**\\nGo over how we should begin coding the club's website.\\n**Participants:** <u>22222, <u>33333"
+
+    >>> show(('all',), sample_entries, (2025, 6, 7, 18, 55))
+    '# 1. General Meeting 1 (SOON)\\n**2025-06-07 19:00:00 (0:05:00 left)**\\n\\n# 2. Weekly Event Recap (WEEKLY, PAUSED)\\n**2025-06-13 19:00:00 (6 days, 0:05:00 left)**\\n\\n# 3. Webmasters 2 - Website\\n**2025-06-17 20:00:00 (10 days, 1:05:00 left)**\\n\\n# 4. Tea Club Collab Meeting (CANCELED)\\n**2025-09-11 16:00:00 (95 days, 21:05:00 left)**'
+
+    >>> show(('-all',), sample_entries, (2025, 6, 7, 18, 55))
+    ''
+
+    >>> show(('-all', 'paused', 'canceled'), sample_entries, (2025, 6, 7, 18, 55))
+    '# 2. Weekly Event Recap (WEEKLY, PAUSED)\\n**2025-06-13 19:00:00 (6 days, 0:05:00 left)**\\n\\n# 4. Tea Club Collab Meeting (CANCELED)\\n**2025-09-11 16:00:00 (95 days, 21:05:00 left)**'
+
+    >>> show(('-all', '3'), sample_entries, (2025, 6, 7, 18, 55))
+    '# 3. Webmasters 2 - Website\\n**2025-06-17 20:00:00 (10 days, 1:05:00 left)**'
     '''
     # Turn all arguments lowercase.
     args = tuple(arg.upper() for arg in args)
@@ -297,22 +296,29 @@ def show(args: tuple[str], entries:list[dict], now: datetime) -> tuple[bool, str
         # Get the current entry.
         curr_entry = entries[pos_entries]
 
-        meeting_labels = curr_entry[4]
+        meeting_labels = curr_entry['labels']
 
         # If the current entry is not to be displayed, skip.
         if not to_display(args, meeting_labels, pos_entries):
             continue
 
         # Get the datetime object for the meeting's time.
-        meeting_time = datetime(*curr_entry[1])
+        meeting_time = datetime(*curr_entry['time'])
 
-        # Add the entry's index, title, labels, time, & time difference to the output.
-        output_string = '# ' + str(pos_entries) + '. ' + curr_entry[0] + '(' + ', '.join(meeting_labels) + ')\n' + \
-            '**' + str(meeting_time) + '(' + str(meeting_time - now) + ' left)**' + '\n'
+        # Add the entry index & meeting title first.
+        output_string = '# ' + str(pos_entries + 1) + '. ' + curr_entry['title']
+
+        # If the meeting has any labels, add them in parentheses.
+        if meeting_labels:
+            output_string += ' (' + ', '.join(meeting_labels) + ')'
         
-        # If "full" is an argument, add the entry's details & participants' display names as well.
-        if 'full' in args:
-            output_string += curr_entry[2] + '\n' + '**Participants:** ' + ...
+        # Then, add the meeting time & time difference on the next line.
+        output_string += '\n**' + str(meeting_time) + ' (' + str(meeting_time - datetime(*now)) + ' left)**'
+        
+        # If "full" is an argument, add the entry details & unformatted participants on separate lines.
+        if 'FULL' in args:
+            output_string += '\n' + curr_entry['details'] + '\n' + \
+                '**Participants:** ' + ', '.join(curr_entry['participants'])
         
         # Add the string to the output list.
         output_strings.append(output_string)
