@@ -22,7 +22,7 @@ Refer to [Frodo Meet](frodo_meet) as an example bot folder.
 All bots should have their own folder under this repo, and all files specific to a bot should be kept in their folder.\
 Furthermore, all files required for hosting should be in a **files** subfolder (other than the [common](common_bot_helper.py) bot helper file).
 > A bot will likely have these files for hosting:
-> - Driver file: Uses the Python discord package to communicate with Discord. Uses functions from helper files to do computation & get outputs ([e.g.](frodo_meet/host_files/frodo_meet.py)).
+> - Driver file: Uses Discord API to communicate with Discord. Uses functions from helper files to do computation & get outputs ([e.g.](frodo_meet/host_files/frodo_meet.py)).
 > - Helper file(s): Contains helper functions for computing a bot's output. Isolated from Discord functions to allow easy testing ([e.g.](frodo_meet/host_files/frodo_meet_helper.py)).
 > - Data file(s): If a bot needs to store data. Likely written to/fetched from by helper files ([e.g.](frodo_meet/host_files/meeting_entries.txt)).
 
