@@ -1,6 +1,6 @@
 # Here are the UofT Visual Arts Club's Discord bots.
 Author: Sunny Lin \
-Editrs: \
+Editors: \
 Last modified: Jul 9, 25
 
 ---
@@ -19,7 +19,7 @@ I've also included a a rough [template](bot_template.py) file that I wrote for s
 ---
 ### Organisation
 
-Refer to [Frodo Meet](frodo_meet) as an example bot folder.
+Refer to [Frodo Meet](frodo-meet) as an example bot folder.
 
 All bots should have their <ins>own folder</ins> under this repo, and all files specific to a bot should be kept in their folder. \
 Furthermore, all files required for hosting should be in a <ins>host-files</ins> subfolder (other than the [common bot helper file](common_bot_helper.py)).
