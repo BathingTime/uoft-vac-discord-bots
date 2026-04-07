@@ -5,8 +5,9 @@ Last modified: Apr 7, 26
 '''
 from discord import ui, Interaction
 
-from frodo_meet_helper import get_show_meeting_output
 from common_bot_helper import parse_input
+from meeting import Meeting
+from meeting_time import MeetingTime
 
 LIST_INPUT_BREAKPOINT = ' '
 
@@ -19,10 +20,18 @@ class AddInputModal(ui.Modal, title='Add Meeting'):
     _labels_input = ui.TextInput(label='Labels', required=False)
 
     async def on_submit(self, interaction: Interaction):
-        title = self._title_input.value
-        time = self._time_input.value
-        description = self._description_input.value
-        participants = parse_input(self._participants_input.value, LIST_INPUT_BREAKPOINT)
-        labels = parse_input(self._labels_input.value, LIST_INPUT_BREAKPOINT)
+        # If time input was invalid, print the error message.
+        time = MeetingTime.from_input(self._time_input.value)
+        if type(time) == str:
+            await interaction.response.send_message(time)
+            return
 
-        await interaction.response.send_message(f'{title} {time} {description} {participants} {labels}')
+        meeting = Meeting(
+            self._title_input.value,
+            time,
+            description = self._description_input.value,
+            participants = parse_input(self._participants_input.value, LIST_INPUT_BREAKPOINT),
+            labels = parse_input(self._labels_input.value, LIST_INPUT_BREAKPOINT),
+        )
+
+        await interaction.response.send_message(meeting.to_discord(is_full=True))

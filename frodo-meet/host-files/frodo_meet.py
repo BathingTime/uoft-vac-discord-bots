@@ -24,13 +24,13 @@ from discord import Intents, Interaction
 from discord.ext import commands
 
 from asyncio import sleep
-from time import time, strftime
 
-from common_bot_helper import \
-    read_json_file
-import frodo_meet_commands
-from frodo_meet_helper import \
-    get_meetings
+from common_bot_helper import read_json_file
+
+import bot_commands
+from data_access import get_meetings
+from meeting_time import MeetingTime
+
 from add_input_modal import AddInputModal
 
 
@@ -39,8 +39,8 @@ NOTIFY_CHANNEL_ID = ... # TODO: Channel ID for the meeting notification channel.
 ENTRIES_FILE_PATH = BASE_DIR / "meeting_entries.json"
 
 COMMAND_PREFIX = '.' # For single line commands (e.g. show).
-MESSAGE_TIMEOUT = 60 # Bot will stop awaiting messages after this number of seconds.
 CHECK_INTERVAL = 60 # Seconds between each check for upcoming meetings.
+NOTICE_TIME = 5 * 60 # Notify meetings that will begin in less than this value of seconds.
 WORD_LIMIT = 2000 # Word limit for Discord messages; might vary, but this is a safe value.
 
 
@@ -59,10 +59,10 @@ async def on_ready():
 
 @bot.command(pass_context = True)
 async def show(ctx, *args) -> None:
-    await ctx.send(frodo_meet_commands.show(
+    await ctx.send(bot_commands.show(
         args,
         get_meetings(read_json_file(ENTRIES_FILE_PATH)),
-        time(),
+        MeetingTime.get_now(),
     ))
 
 @bot.tree.command(name='add', description='Create a new meeting!')

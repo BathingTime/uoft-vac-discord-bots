@@ -1,44 +1,55 @@
 '''Common Bot Helper
 Author: Sunny Lin
 Editors: 
-Last modified: Jul 6, 25
+Last modified: Apr 7, 26
 
-Contains functions that many bots will likely find useful.
+Functions that many bots will likely find useful.
 To be deployed along with bot host files.
 '''
-import json
+from json import load, dump
+from re import split
 
 
 # File functions:
 def read_json_file(file_path: str) -> dict:
-    with open(file_path, 'r') as f: return json.load((f))
+    with open(file_path, 'r') as f: return load((f))
 
 def write_json_file(file_path: str, data: dict) -> None:
-    with open(file_path, 'w') as f: json.dump(data, f, indent = 4)
+    with open(file_path, 'w') as f: dump(data, f, indent = 4)
 
 
 # Input functions:
-def parse_input(input: str, breakpoint: str) -> list[str]:
+def parse_input(input: str, breakpoints_re: str) -> list[str]:
     '''
-    Given an input string and breakpoint string,
+    Given an input string and a regex of breakpoints,
     return a list of the arguments (substrings) from the input
-    divided by the breakpoint.
+    split by the breakpoints.
     Also make all arguments lowercase.
 
     Sample Usage:
-    >>> parse_input('hello hi', ' ')
-    ['hello', 'hi']
+    >>> parse_input('-all soon 1 -2', ' ')
+    ['-all', 'soon', '1', '-2']
 
-    >>> parse_input(' Hello  HI   ', ' ')
-    ['hello', 'hi']
+    >>> parse_input(' -ALL  sOoN   1    -2     ', ' ')
+    ['-all', 'soon', '1', '-2']
 
-    >>> parse_input('hello hi, greetings', ',')
-    ['hello hi', 'greetings']
+    >>> parse_input('-all soon, 1 -2', ',')
+    ['-all soon', '1 -2']
 
-    >>> parse_input('hello hi', 'hello')
-    ['hi']
+    >>> parse_input('-all, soon ,1 , -2', '[ ,]')
+    ['-all', 'soon', '1', '-2']
+
+    >>> parse_input('-all, soon ,1 , -2', ' ,')
+    ['-all, soon', '1', '-2']
+
+    >>> parse_input('2025 Jun-7, 18:00', '[ ,:-]')
+    ['2025', 'jun', '7', '18', '00']
     '''
-    return [arg.strip().lower() for arg in input.split(breakpoint) if arg.strip()]
+    return [
+        arg.strip().lower()
+        for arg in split(breakpoints_re, input)
+        if arg.strip()
+    ]
 
 
 # Discord functions:
