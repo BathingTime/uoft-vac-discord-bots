@@ -1,7 +1,7 @@
 '''Frodo Meet
 Author: Sunny Lin
 Editors: 
-Last modified: Jul 6, 25
+Last modified: Apr 7, 26
 
 Uoft Visual Arts Club exec team's Discord bot for easy meeting plan management.
 
@@ -27,6 +27,7 @@ from asyncio import sleep
 
 from common_bot_helper import read_json_file
 
+from constants import DATA_FILE_PATH
 import bot_commands
 from data_access import get_meetings
 from meeting_time import MeetingTime
@@ -36,17 +37,15 @@ from add_input_modal import AddInputModal
 
 # CONSTANTS:
 NOTIFY_CHANNEL_ID = ... # TODO: Channel ID for the meeting notification channel.
-ENTRIES_FILE_PATH = BASE_DIR / "meeting_entries.json"
 
-COMMAND_PREFIX = '.' # For single line commands (e.g. show).
 CHECK_INTERVAL = 60 # Seconds between each check for upcoming meetings.
-NOTICE_TIME = 5 * 60 # Notify meetings that will begin in less than this value of seconds.
+NOTICE_TIME = 5 * 60 # Notify meetings that will begin in less than this number of seconds.
 WORD_LIMIT = 2000 # Word limit for Discord messages; might vary, but this is a safe value.
 
 
 intents = Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix=COMMAND_PREFIX, intents=intents)
+bot = commands.Bot(command_prefix='.', intents=intents)
 
 @bot.event
 async def on_ready():
@@ -61,21 +60,15 @@ async def on_ready():
 async def show(ctx, *args) -> None:
     await ctx.send(bot_commands.show(
         args,
-        get_meetings(read_json_file(ENTRIES_FILE_PATH)),
+        get_meetings(read_json_file(DATA_FILE_PATH)),
         MeetingTime.get_now(),
     ))
 
 @bot.tree.command(name='add', description='Create a new meeting!')
 async def add(interaction: Interaction) -> None:
-    await interaction.response.send_modal(AddInputModal())
-
-@bot.command(pass_context = True)
-async def cancel(ctx, *args) -> None:
-    ...
-
-@bot.command(pass_context = True)
-async def edit(ctx, *args) -> None:
-    ...
+    await interaction.response.send_modal(AddInputModal(
+        get_meetings(read_json_file(DATA_FILE_PATH))
+    ))
 
 
 # AUTO FUNCTIONS:

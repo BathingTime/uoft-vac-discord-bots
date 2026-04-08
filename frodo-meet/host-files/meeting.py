@@ -56,12 +56,12 @@ class Meeting:
 
     def to_discord(self, index: int | None = None, now: MeetingTime | None = None, is_full: bool = False) -> str:
         '''
-        A string of the meeting's data be printed to Discord.
+        Return a string of the meeting's data be printed to Discord.
 
         Used by show command and data-modifying commands' input modals responses.
 
         Sample Usage:
-        >>> from sample_data import SAMPLE_MEETINGS, SAMPLE_NOW
+        >>> from constants import SAMPLE_MEETINGS, SAMPLE_NOW
 
         >>> meeting = SAMPLE_MEETINGS[0]
 

@@ -13,13 +13,13 @@ from meeting import Meeting
 
 def get_meetings(file_data: dict) -> list[Meeting]:
     '''
-    Given the data from a json file,
-    construct and return a list of Meeting objects.
+    Given the data from a json file, construct and return a list of Meeting objects.
+
 
     Sample Usage:
-    >>> from sample_data import SAMPLE_ENTRIES_DATA
+    >>> from constants import SAMPLE_MEETINGS_DATA
 
-    >>> meetings = get_meetings(SAMPLE_ENTRIES_DATA)
+    >>> meetings = get_meetings(SAMPLE_MEETINGS_DATA)
     >>> meeting1 = meetings[0]
 
     >>> meeting1.get_title()
@@ -57,16 +57,15 @@ def get_meetings(file_data: dict) -> list[Meeting]:
     return [Meeting.from_file(entry_data) for entry_data in file_data['meetings']]
 
 
-def update_meeting_record(meetings: list[Meeting], file_path: str) -> None:
+def write_meetings(file_path: str, meetings: list[Meeting]) -> None:
     '''
-    Given a list of Meeting objects,
-    write the data to the json file.
+    Given a list of Meeting objects, write the data to the json file.
 
     Sample usage inapplicable.
     '''
     common_bot_helper.write_json_file(file_path, {'meetings': [{
         'title': meeting.get_title(),
-        'time': meeting.get_time(),
+        'time': meeting.get_time().get_timestamp(),
         'description': meeting.get_description(),
         'participants': meeting.get_participants(),
         'labels': meeting.get_labels(),

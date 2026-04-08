@@ -12,46 +12,44 @@ from meeting import Meeting
 
 def show(args: tuple[str], meetings: list[Meeting], now: float) -> str:
     '''
-    Display the list of meeting plans in order.
+    Display the list of meetings in order.
     Along with displaying times, also include how much time the meeting is from now.
 
-    By default, display the title, labels, & time of all active meeting plans.
+    By default, display the title, labels, & time of active meetings.
 
-    Arguments can be passed for more options:
+    Args can be passed for more options:
     - full: also display description and participants.
     - all: display all meetings on record.
-    - <label>: only display meeting plans of that label (multiple allowed).
-    - <index>: only display meeting plans of that index (mutliple allowed).
-    - -<all/label/index>: do not display meeting plans relevant to -arguments.
+    - <label>: only display meetings of that label (multiple allowed).
+    - <index>: only display meetings of that index (mutliple allowed).
+    - -<all/label/index>: do not display meetings relevant to -args.
 
     Priority: index > label > all
-    If an entry has an argument label and another -argument label, it will still be displayed.
+    If a meeting has an arg label and another -arg label, it will still be displayed.
 
     Preconditions:
-    - There cannot be a + and - argument with the same label/index.
+    - There cannot be a + and - arg with the same label/index.
 
     Sample Usage:
-    >>> from sample_data import SAMPLE_ENTRIES_DATA, SAMPLE_NOW
+    >>> from constants import SAMPLE_MEETINGS, SAMPLE_NOW
 
-    >>> meetings = frodo_meet_helper.get_meetings(SAMPLE_ENTRIES_DATA)
+    >>> show((), SAMPLE_MEETINGS, SAMPLE_NOW)
+    '## 1. General Meeting 1 (soon)\\n<t:1749319200:F> (<t:300:R>)\\n## 3. Webmasters - Website\\n<t:1750190400:F> (<t:871500:R>)'
+    
+    >>> show(('full',), SAMPLE_MEETINGS, SAMPLE_NOW)
+    "## 1. General Meeting 1 (soon)\\n<t:1749319200:F> (<t:300:R>)\\nOur first exec meeting of the year! Get to know each other and a run down on club operations.\\n**Participants:** <r>11111\\n## 3. Webmasters - Website\\n<t:1750190400:F> (<t:871500:R>)\\nGo over how we should begin coding the club's website.\\n**Participants:** <u>33333, <u>44444"
 
-    >>> show((), meetings, SAMPLE_NOW)
-    '## 1. General Meeting 1 (soon)\\n2025-06-07 18:00 (0:05 left)\\n## 3. Webmasters - Website\\n2025-06-17 20:00 (10 days, 2:05 left)'
+    >>> show(('all',), SAMPLE_MEETINGS, SAMPLE_NOW)
+    '## 1. General Meeting 1 (soon)\\n<t:1749319200:F> (<t:300:R>)\\n## 2. Weekly Event Recap (weekly, paused)\\n<t:1749837600:F> (<t:518700:R>)\\n## 3. Webmasters - Website\\n<t:1750190400:F> (<t:871500:R>)\\n## 4. Tea Club Collab Meeting (canceled)\\n<t:1757606400:F> (<t:8287500:R>)'
 
-    >>> show(('full',), meetings, SAMPLE_NOW)
-    "## 1. General Meeting 1 (soon)\\n2025-06-07 18:00 (0:05 left)\\nOur first exec meeting of the year! Get to know each other and a run down on club operations.\\n**Participants:** <r>11111\\n## 3. Webmasters - Website\\n2025-06-17 20:00 (10 days, 2:05 left)\\nGo over how we should begin coding the club's website.\\n**Participants:** <u>33333, <u>44444"
-
-    >>> show(('all',), meetings, SAMPLE_NOW)
-    '## 1. General Meeting 1 (soon)\\n2025-06-07 18:00 (0:05 left)\\n## 2. Weekly Event Recap (weekly, paused)\\n2025-06-13 18:00 (6 days, 0:05 left)\\n## 3. Webmasters - Website\\n2025-06-17 20:00 (10 days, 2:05 left)\\n## 4. Tea Club Collab Meeting (canceled)\\n2025-09-11 16:00 (95 days, 22:05 left)'
-
-    >>> show(('-all',), meetings, SAMPLE_NOW)
+    >>> show(('-all',), SAMPLE_MEETINGS, SAMPLE_NOW)
     ''
 
-    >>> show(('-all', 'paused', 'canceled'), meetings, SAMPLE_NOW)
-    '## 2. Weekly Event Recap (weekly, paused)\\n2025-06-13 18:00 (6 days, 0:05 left)\\n## 4. Tea Club Collab Meeting (canceled)\\n2025-09-11 16:00 (95 days, 22:05 left)'
+    >>> show(('-all', 'paused', 'canceled'), SAMPLE_MEETINGS, SAMPLE_NOW)
+    '## 2. Weekly Event Recap (weekly, paused)\\n<t:1749837600:F> (<t:518700:R>)\\n## 4. Tea Club Collab Meeting (canceled)\\n<t:1757606400:F> (<t:8287500:R>)'
 
-    >>> show(('-all', '3'), meetings, SAMPLE_NOW)
-    '## 3. Webmasters - Website\\n2025-06-17 20:00 (10 days, 2:05 left)'
+    >>> show(('-all', '3'), SAMPLE_MEETINGS, SAMPLE_NOW)
+    '## 3. Webmasters - Website\\n<t:1750190400:F> (<t:871500:R>)'
     '''
     # print(meetings)
 
@@ -62,7 +60,7 @@ def show(args: tuple[str], meetings: list[Meeting], now: float) -> str:
     for meetings_i in range(len(meetings)):
         curr_meeting = meetings[meetings_i]
 
-        # If the current entry is not to be displayed, skip.
+        # If current entry is not to be displayed, skip.
         if not curr_meeting.to_display(meetings_i, args): continue
         
         # Compute and add the output for the meeting.
@@ -76,19 +74,13 @@ def show(args: tuple[str], meetings: list[Meeting], now: float) -> str:
     return output[:-1]
 
 
-def add(args: tuple[str], meetings: list[Meeting]) -> str:
+def add(meetings: list[Meeting], new_meeting: Meeting, by_date: bool = True) -> None:
     '''
     '''
+    meetings.append(new_meeting)
 
-
-def cancel(args: tuple[str], meetings: list[Meeting]) -> str:
-    '''
-    '''
-
-
-def edit(args: tuple[str], meetings: list[Meeting]) -> str:
-    '''
-    '''
+    if by_date: meetings.sort(key=lambda m: m.get_time().get_timestamp())
+    else: meetings.sort(key=lambda m: m.get_title())
 
 
 if __name__ == '__main__':

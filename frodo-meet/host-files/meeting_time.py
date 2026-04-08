@@ -4,9 +4,12 @@ Editors:
 Last modified: Apr 7, 26
 '''
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from time import time
 
 from common_bot_helper import parse_input
+
+TORONTO_TIMEZONE = ZoneInfo("America/Toronto")
 
 
 # HELPER FUNCTIONS:
@@ -102,7 +105,7 @@ class MeetingTime:
 
     @classmethod
     def from_args(cls, year: int, month: int, day: int, hour: int, minute: int):
-        return cls(datetime(year, month, day, hour, minute, tzinfo=timezone.utc).timestamp())
+        return cls(datetime(year, month, day, hour, minute, tzinfo=TORONTO_TIMEZONE).timestamp())
     
     @classmethod
     def from_input(cls, input: str):
@@ -116,14 +119,14 @@ class MeetingTime:
             init_args[1] = _validate_month(args[1])
             init_args[0], init_args[2], init_args[3], init_args[4] = \
                 _validate_year(args[0]), \
-                _validate_day(args[2], init_args[1]), \
+                _validate_day(args[2], init_args[1] - 1), \
                 _validate_hour(args[3]), \
                 _validate_minute(args[4])
         
         if None in init_args:
             return 'Invalid time input.'
         
-        return cls(datetime(*init_args, tzinfo=timezone.utc).timestamp())
+        return cls(datetime(*init_args, tzinfo=TORONTO_TIMEZONE).timestamp())
     
     @classmethod
     def get_now(cls): return cls(time())

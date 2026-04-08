@@ -9,6 +9,8 @@ To be deployed along with bot host files.
 from json import load, dump
 from re import split
 
+RESPONSE_TIMEOUT = 60 # Bots will stop waiting for responses after this number of seconds.
+
 
 # File functions:
 def read_json_file(file_path: str) -> dict:
@@ -21,10 +23,8 @@ def write_json_file(file_path: str, data: dict) -> None:
 # Input functions:
 def parse_input(input: str, breakpoints_re: str) -> list[str]:
     '''
-    Given an input string and a regex of breakpoints,
-    return a list of the arguments (substrings) from the input
-    split by the breakpoints.
-    Also make all arguments lowercase.
+    Given an input string and a regex of breakpoints, return a list of the args (substrings) from the input split by the breakpoints.
+    Also make all args lowercase.
 
     Sample Usage:
     >>> parse_input('-all soon 1 -2', ' ')
@@ -55,8 +55,9 @@ def parse_input(input: str, breakpoints_re: str) -> list[str]:
 # Discord functions:
 def chop_output(output: str, limit: int) -> tuple[str]:
     '''
-    Given a string to be outputted, return a tuple containing chopped parts of the output,
+    Given a string to be printed to Discord, return a tuple containing chopped parts of the string,
     where the chops are at line breaks and each substring is under the given word limit.
+
     This is so string above the word limit can be sent in multiple messages and still be displayed.
 
     Sample Usage:
@@ -85,18 +86,14 @@ def chop_output(output: str, limit: int) -> tuple[str]:
     >>> chop_output('eeeeee', 5)
     ['eeeeee']
     '''
-    # Split the output at all line breaks.
+    # Split output at all line breaks.
     lines = output.split('\n')
 
-    # Construct the output list.
     chopped = []
-    start = 0
-    end = 1
-
-    # Go until the end of the list.
+    start, end = 0, 1
     while end != len(lines) + 1:
 
-        # Get the current substring.
+        # Get current substring.
         substring = '\n'.join(lines[start: end])
 
         # If the length of the substring exceeds the minimum and it contains at least one line break,
@@ -105,7 +102,7 @@ def chop_output(output: str, limit: int) -> tuple[str]:
             chopped.append('\n'.join(lines[start: end - 1]))
             start = end - 1
 
-        # Otherwise, the next line will be considered.
+        # Otherwise, next line will be considered.
         else:
 
             # If the length of the substring is equal to the minimum,
@@ -114,15 +111,14 @@ def chop_output(output: str, limit: int) -> tuple[str]:
                 chopped.append(substring)
                 start = end
 
-            # Extend to the next line.
+            # Extend to next line.
             end += 1
 
-    # If the start index does not immediately precede the end index,
-    # then the last lines have not been added, so add them and return the output list.
-    if start != end - 1:
-        return chopped + ['\n'.join(lines[start:])]
+    # If start index does not immediately precede the end index,
+    # then the last lines have not been added, so add them and return output list.
+    if start != end - 1: return chopped + ['\n'.join(lines[start:])]
 
-    # Otherwise, all lines have been added, so return the output list.
+    # Otherwise, all lines have been added, so return output list.
     return chopped
 
 
