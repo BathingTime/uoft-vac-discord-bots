@@ -6,6 +6,7 @@ Last modified: Apr 7, 26
 Functions that many bots will likely find useful.
 To be deployed along with bot host files.
 '''
+from discord import Interaction, Message
 from json import load, dump
 from re import split
 
@@ -23,29 +24,37 @@ def write_json_file(file_path: str, data: dict) -> None:
 
 # INPUT FUNCTIONS
 
+async def await_message_default(interaction: Interaction, timeout: float) -> Message:
+    def check_default(message: Message) -> bool:
+        '''From same user in the same channel.'''
+        return (
+            message.author == interaction.user and
+            message.channel == interaction.channel
+        )
+
+    return await interaction.client.wait_for('message', check=check_default, timeout=timeout)
+
+
 def parse_input(input: str, breakpoints_re: str) -> list[str]:
     '''
     Given an input string and a regex of breakpoints, return a list of the args (substrings) from the input split by the breakpoints.
     Also make all args lowercase.
 
     Sample Usage:
-    >>> parse_input('-all soon 1 -2', ' ')
-    ['-all', 'soon', '1', '-2']
+    >>> parse_input('a b c', ' ')
+    ['a', 'b', 'c']
 
-    >>> parse_input(' -ALL  sOoN   1    -2     ', ' ')
-    ['-all', 'soon', '1', '-2']
+    >>> parse_input('  a  b   C    ', ' ')
+    ['a', 'b', 'c']
 
-    >>> parse_input('-all soon, 1 -2', ',')
-    ['-all soon', '1 -2']
+    >>> parse_input('a b, c', ',')
+    ['a b', 'c']
 
-    >>> parse_input('-all, soon ,1 , -2', '[ ,]')
-    ['-all', 'soon', '1', '-2']
+    >>> parse_input('a, b ,c', ' ,')
+    ['a, b', 'c']
 
-    >>> parse_input('-all, soon ,1 , -2', ' ,')
-    ['-all, soon', '1', '-2']
-
-    >>> parse_input('2025 Jun-7, 18:00', '[ ,:-]')
-    ['2025', 'jun', '7', '18', '00']
+    >>> parse_input('a, b ,c', '[ ,]')
+    ['a', 'b', 'c']
     '''
     return [
         arg.strip().lower()
@@ -54,7 +63,7 @@ def parse_input(input: str, breakpoints_re: str) -> list[str]:
     ]
 
 
-# DISCORD FUNCTIONS
+# OUTPUT FUNCTIONS
 
 def chop_output(output: str, limit: int) -> tuple[str]:
     '''

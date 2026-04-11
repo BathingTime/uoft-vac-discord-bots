@@ -19,9 +19,6 @@ LABELS = (SOON_LABEL, CANCELED_LABEL, YEARLY_LABEL, WEEKLY_LABEL, DAILY_LABEL, P
 NON_NOTIFY_LABELS = (SOON_LABEL, CANCELED_LABEL, PAUSED_LABEL)
 RECURRING_LABELS = (YEARLY_LABEL, WEEKLY_LABEL, DAILY_LABEL)
 
-USER_INDICATOR = '<u>'
-ROLE_INDICATOR = '<r>'
-
 
 class Meeting:
     '''
@@ -64,7 +61,7 @@ class Meeting:
 
     # INSTANCE METHODS
 
-    def to_discord(self, index: int | None = None, full: bool = False, pinging: bool = False) -> str:
+    def to_discord(self, ids_to_names: dict[str: str] = None, index: int = None, full: bool = False) -> str:
         '''
         Return a string of the meeting's data to be printed to Discord.
 
@@ -102,10 +99,13 @@ class Meeting:
         if participants:
             output += f'\n__Participants__: {', '.join(participants)}'
 
-            # If printing to ping, format all participants so Discord pings them.
-            if pinging:
-                output = sub(r'<u>(\d+)', r'<@\1>', output)
-                output = sub(r'<r>(\d+)', r'<@&\1>', output)
+            # If not printing to ping, replace all pings with the corresponding role/user's names.
+            if ids_to_names != None:
+                print(ids_to_names)
+                
+                def repl(match): return ids_to_names.get(match.group(1), match.group(0))
+                
+                output = sub(r'<@&?(\d+)>', repl, output)
         
         else: output += f'\n__No participants__ 🧐'
         

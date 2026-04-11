@@ -14,7 +14,7 @@ Driver file.
 # TODO: Cancel, edit functions.
 # TODO: Check + notify auto function.
 
-from discord import Intents, Interaction
+from discord import Intents, Interaction, Guild
 from discord.ext import commands
 
 from asyncio import sleep
@@ -39,6 +39,8 @@ WORD_LIMIT = 2000 # Word limit for Discord messages; might vary, but this is a s
 
 intents = Intents.default()
 intents.message_content = True
+intents.members = True
+
 bot = commands.Bot(command_prefix='.', intents=intents)
 
 @bot.event
@@ -54,13 +56,16 @@ async def on_ready():
 async def show(ctx, *args) -> None:
     await ctx.send(frodo_meet_commands.show(
         args,
-        get_meetings(read_json_file(DATA_FILE_PATH))
+        get_meetings(read_json_file(DATA_FILE_PATH)),
+        get_ids_to_names(ctx.guild)
     ))
+
 
 @bot.tree.command(name='add', description='Create a new meeting!')
 async def add(interaction: Interaction) -> None:
     await interaction.response.send_modal(AddInputModal(
-        get_meetings(read_json_file(DATA_FILE_PATH))
+        get_meetings(read_json_file(DATA_FILE_PATH)),
+        get_ids_to_names(interaction.guild)
     ))
 
 
@@ -79,8 +84,6 @@ async def auto_notify() -> None:
     notify_channel = bot.get_channel(NOTIFY_CHANNEL_ID)
     check_interval_secs = CHECK_INTERVAL_MINS * 60
     notice_time_secs = NOTICE_TIME_MINS * 60
-
-    await notify_channel.send('This is Frodo Meet clocking in! 🫡')
     
     while not bot.is_closed():
         # await notify_channel.send(f'Test: the current time is {MeetingTime.get_now().to_discord()}.')
@@ -107,6 +110,18 @@ async def auto_notify() -> None:
 
         # Check every specified interval.
         await sleep(check_interval_secs)
+
+
+# HELPER FUNCTIONS
+
+def get_ids_to_names(guild: Guild) -> dict[str: str]:
+    '''Return a dictionary of ID-name pairs for the server's roles and members.'''
+    roles_dict = {str(role.id): role.name for role in guild.roles}
+    members_dict = {str(member.id): member.display_name for member in guild.members}
+
+    # print(roles_dict, members_dict)
+
+    return roles_dict | members_dict
 
 
 # THE CODE BODY BELOW CONTAINS SENSITIVE INFORMATION; KEEP COMPRESSED.

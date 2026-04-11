@@ -5,9 +5,9 @@ Last modified: Apr 7, 26
 
 Input modal for the add command.
 '''
-from discord import ui, Interaction, ButtonStyle
+from discord import ui, Interaction, ButtonStyle, Message
 
-from common_bot_helper import RESPONSE_TIMEOUT, parse_input
+from common_bot_helper import RESPONSE_TIMEOUT, await_message_default, parse_input
 
 from frodo_meet_commands import add
 from frodo_meet_data import write_meetings, DATA_FILE_PATH
@@ -20,34 +20,53 @@ LIST_INPUT_BREAKPOINT = ' '
 
 class AddInputModal(ui.Modal, title='Add Meeting'):
     _meetings: list[Meeting]
+    _ids_to_names: dict[str: str]
 
     _title_input = ui.TextInput(label='Title')
     _time_input = ui.TextInput(label='Time')
     _description_input = ui.TextInput(label='Description', required=False)
-    _participants_input = ui.TextInput(label='Participants', required=False)
-    _labels_input = ui.TextInput(label='Labels', required=False)
 
-    def __init__(self, meetings: list[Meeting]) -> None:
+    def __init__(self, meetings: list[Meeting], ids_to_names: dict[str: str]) -> None:
         super().__init__()
         self._meetings = meetings
+        self._ids_to_names = ids_to_names
 
     async def on_submit(self, interaction: Interaction):
+
         # If time input was invalid, print the error message.
         time = MeetingTime.from_input(self._time_input.value)
-        if type(time) == str:
+        if isinstance(time, str):
             await interaction.response.send_message(time)
             return
+        
+        # Get participants from next message.
+        await interaction.response.send_message(
+            'Enter **pings** for all participants you want to add for this meeting, separated by spaces. (roles or users)\n'
+            'E.g. @Lead @Frodo Meet\n'
+            'Or type any non-ping message to skip.'
+        )
 
+        try:
+            participants_message = await await_message_default(interaction, RESPONSE_TIMEOUT)
+        except TimeoutError:
+            await interaction.followup.send('Response timeout. ⚠️')
+            return
+        
+        participants = parse_input(participants_message.content, LIST_INPUT_BREAKPOINT)
+
+        # Create meeting object.
         new_meeting = Meeting(
             self._title_input.value,
             time,
-            description = self._description_input.value,
-            participants = parse_input(self._participants_input.value, LIST_INPUT_BREAKPOINT),
-            labels = parse_input(self._labels_input.value, LIST_INPUT_BREAKPOINT),
+            self._description_input.value,
+            participants,
         )
 
-        await interaction.response.send_message(
-            f'New meeting:\n{new_meeting.to_discord(full=True)}\n\nWould you like to save this meeting?',
+        # Await confirmation.
+        await interaction.followup.send(
+            'New meeting:\n'
+            f'{new_meeting.to_discord(self._ids_to_names, full=True)}\n\n'
+            'Would you like to create this meeting?',
             view=ConfirmView(self._meetings, new_meeting)
         )
 
@@ -69,13 +88,13 @@ class ConfirmView(ui.View):
         write_meetings(DATA_FILE_PATH, meetings)
 
         await interaction.response.edit_message(
-            content=f'**{new_meeting.get_title()}** has been saved!',
+            content=f'**{new_meeting.get_title()}** has been created! ✨',
             view=None
         )
 
     @ui.button(label="No", style=ButtonStyle.red)
     async def cancel(self, interaction: Interaction, _: ui.Button):
         await interaction.response.edit_message(
-            content=f'**{self._new_meeting.get_title()}** was discarded.',
+            content=f'**{self._new_meeting.get_title()}** has been discarded. 🗑️',
             view=None
         )

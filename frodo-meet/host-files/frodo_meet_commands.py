@@ -11,7 +11,7 @@ from meeting_time import MeetingTime
 
 # BOT FUNCTIONS
 
-def show(args: tuple[str], meetings: list[Meeting]) -> str:
+def show(args: tuple[str], meetings: list[Meeting], ids_to_names: dict[str: str]) -> str:
     '''
     Display the list of meetings in order.
     Along with displaying times, also include how much time the meeting is from now.
@@ -32,9 +32,12 @@ def show(args: tuple[str], meetings: list[Meeting]) -> str:
     - There cannot be a + and - arg with the same label/index.
 
     Sample Usage:
+    >>> from frodo_meet_data import SAMPLE_MEETINGS
     
     '''
     # print(meetings)
+
+    if not meetings: return 'There are no meetings. 🧐'
 
     # Turn all args lowercase.
     args = tuple(arg.lower() for arg in args)
@@ -47,7 +50,7 @@ def show(args: tuple[str], meetings: list[Meeting]) -> str:
         if not curr_meeting.to_display(meetings_i, args): continue
         
         # Compute and add the output for the meeting.
-        output += f'{curr_meeting.to_discord(meetings_i, 'full' in args)}\n'
+        output += f'{curr_meeting.to_discord(ids_to_names, meetings_i, 'full' in args)}\n'
     
     # Return output, omitting the last \n.
     return output[:-1]
@@ -140,7 +143,7 @@ def notify(meetings: list[Meeting], now: MeetingTime, notice_time_secs: int) -> 
         if not output_list: first_meeting = curr_meeting
 
         # Add meeting to notify.
-        output_list.append(curr_meeting.to_discord(meetings_i, True, True))
+        output_list.append(curr_meeting.to_discord(index=meetings_i, full=True))
 
         # Mark meeting as soon.
         curr_meeting.add_label(SOON_LABEL)

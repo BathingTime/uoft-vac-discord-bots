@@ -17,23 +17,21 @@ DATA_FILE_PATH = BASE_DIR / 'meetings_data.json'
 # Sample data
 SAMPLE_MEETINGS_DATA = read_json_file('frodo-meet/meetings_data_sample.json')
 EPOCH = MeetingTime(0)
+SAMPLE_IDS_TO_NAMES = {
+    '12345': 'Execs',
+    '67890': 'Sunny'
+}
 
 
 def get_meetings(file_data: dict) -> list[Meeting]:
-    '''
-    Given the data from a json file, construct and return a list of Meeting objects.
-    '''
+    '''Given the data from a json file, construct and return a list of Meeting objects.'''
     return [Meeting.from_file(entry_data) for entry_data in file_data['meetings']]
 
 SAMPLE_MEETINGS = get_meetings(SAMPLE_MEETINGS_DATA) # Sample data
 
 
 def write_meetings(file_path: str, meetings: list[Meeting]) -> None:
-    '''
-    Given a list of Meeting objects, write the data to the json file.
-
-    Sample usage inapplicable.
-    '''
+    '''Given a list of Meeting objects, write the data to the json file.'''
     write_json_file(file_path, {'meetings': [{
         'title': meeting.get_title(),
         'time': meeting.get_time().get_timestamp(),
