@@ -12,6 +12,7 @@ from re import split
 
 RESPONSE_TIMEOUT = 60 # Bots will stop waiting for responses after this number of seconds.
 WORD_LIMIT = 2000 # Word limit for Discord messages; might vary, but this is a safe value.
+NULL_OPTION_VALUE = '0' # Discord option values must be nonempty strings, so use this for null option.
 
 
 # FILE FUNCTIONS
@@ -42,6 +43,9 @@ def parse_input(input: str, breakpoints_re: str) -> list[str]:
     Also make all args lowercase.
 
     Sample Usage:
+    >>> parse_input('', ' ')
+    []
+
     >>> parse_input('a b c', ' ')
     ['a', 'b', 'c']
 

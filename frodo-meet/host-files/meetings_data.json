@@ -1,3 +1,15 @@
 {
-    "meetings": []
+    "meetings": [
+        {
+            "title": "hi",
+            "time": 1776287400.0,
+            "description": "",
+            "participants": [
+                "<@580174011703492658>"
+            ],
+            "labels": [
+                "daily"
+            ]
+        }
+    ]
 }

@@ -7,7 +7,7 @@ UofT Visual Arts Club exec team's Discord bot for easy meeting plan management.
 
 Can create and manage meeting with Discord commands.
 Also notifies meeting members when a meeting is about to start.
-Stores and reads meeting data in meeting_entries.json.
+Stores and reads meeting data in meetings_data.json.
 
 Driver file.
 '''
@@ -16,11 +16,11 @@ Driver file.
 
 from discord import Intents, Interaction, Guild
 from discord.ext import commands
-from discord.ext.commands import Context
+# from discord.ext.commands import Context
 
 from asyncio import sleep
 
-from common_bot_helper import read_json_file, chop_output
+from common_bot_helper import read_json_file, parse_input, chop_output
 
 import frodo_meet_commands
 from frodo_meet_data import get_meetings, write_meetings, DATA_FILE_PATH
@@ -43,20 +43,26 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='.', intents=intents)
 tree = bot.tree
+command = tree.command
 
 
-# COMMAND FUNCTIONS
+# COMMANDS FUNCTIONS
 
-@bot.command(pass_context = True)
-async def show_meetings(ctx: Context, *args: str) -> None:
-    await ctx.send(frodo_meet_commands.show_meetings(
-        args,
+@command(
+    name = 'show-meetings',
+    description = 'Display recorded meeting plans.'
+)
+async def show_meetings(interaction: Interaction, filters: str = '') -> None:
+    await interaction.response.send_message(frodo_meet_commands.show_meetings(
+        parse_input(filters, ' '),
         get_meetings(read_json_file(DATA_FILE_PATH)),
-        get_ids_to_names(ctx.guild)
+        get_ids_to_names(interaction.guild)
     ))
 
-
-@tree.command(name='create-meeting', description='Create a new meeting!')
+@command(
+    name = 'create-meeting',
+    description='Create a new meeting!'
+)
 async def create_meeting(interaction: Interaction) -> None:
     await interaction.response.send_modal(AddInputModal(
         get_meetings(read_json_file(DATA_FILE_PATH)),
@@ -64,7 +70,9 @@ async def create_meeting(interaction: Interaction) -> None:
     ))
 
 
-# AUTO FUNCTIONS
+
+
+# AUTO FUNCTION
 
 async def auto_notify_n_begin(notify_channel, notice_time_secs: int) -> None:
     '''
@@ -109,9 +117,8 @@ async def auto_notify_n_begin(notify_channel, notice_time_secs: int) -> None:
         
         else: print('No meetings have begun.')
 
-        # Check every specified interval.
+        # Sleep for the specified interval.
         await sleep(CHECK_INTERVAL_SECS)
-
 
 background_task = None
 

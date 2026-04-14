@@ -9,20 +9,21 @@ from re import sub
 
 from meeting_time import MeetingTime
 
-SOON_LABEL = 'soon' # Happening in less than <NOTICE_TIME> seconds.
+SOON_LABEL = 'soon' # Will begin in within notice time.
 CANCELED_LABEL = 'canceled' # Will not notify.
 # Recurring labels: will be cloned the same time next occurrence upon beginning.
-YEARLY_LABEL = 'yearly'
-WEEKLY_LABEL = 'weekly'
 DAILY_LABEL = 'daily'
+WEEKLY_LABEL = 'weekly'
+YEARLY_LABEL = 'yearly'
 PAUSED_LABEL = 'paused' # All subsequent meetings will not notify (for recurring meetings).
 
+LABELS_ORDER = (DAILY_LABEL, WEEKLY_LABEL, YEARLY_LABEL, PAUSED_LABEL, CANCELED_LABEL, SOON_LABEL)
 NON_BEGIN_LABELS = (CANCELED_LABEL, PAUSED_LABEL)
 NON_NOTIFY_LABELS = (SOON_LABEL,) + NON_BEGIN_LABELS
 RECURRING_LABELS = { # Map recurring labels to corresponding number of seconds to increment the clone.
-    YEARLY_LABEL: (365 * 24 * 60 * 60, 'next year'),
+    DAILY_LABEL: (24 * 60 * 60, 'tomorrow'),
     WEEKLY_LABEL: (7 * 24 * 60 * 60, 'next week'),
-    DAILY_LABEL: (24 * 60 * 60, 'tomorrow')
+    YEARLY_LABEL: (365 * 24 * 60 * 60, 'next year')
 }
 
 
@@ -77,12 +78,29 @@ class Meeting:
 
     # INSTANCE METHODS
 
-    def to_discord(self, ids_to_names: dict[str: str] = None, index: int = None, full: bool = False) -> str:
+    def to_discord(self, index: int = None, full: bool = False, ids_to_names: dict[str: str] = None) -> str:
         '''
         Return a string of the meeting's data to be printed to Discord.
 
         Sample Usage:
+        >>> from frodo_meet_data import SAMPLE_MEETINGS, SAMPLE_IDS_TO_NAMES
+        >>> meeting1 = SAMPLE_MEETINGS[1]
 
+        >>> meeting1.to_discord()
+        '## past, has soon, daily, multiple participants (daily, soon)\\n<t:0:F> (<t:0:R>)'
+
+        >>> meeting1.to_discord(0)
+        '## 1. past, has soon, daily, multiple participants (daily, soon)\\n<t:0:F> (<t:0:R>)'
+
+        >>> meeting1.to_discord(1, True)
+        '## 2. past, has soon, daily, multiple participants (daily, soon)\\n<t:0:F> (<t:0:R>)\\nnotify: will not notify since marked as soon. begin: will begin, be removed, and be cloned tomorrow\\n__Participants__: <@&12345>, <@67890>'
+
+        >>> meeting1.to_discord(2, True, SAMPLE_IDS_TO_NAMES)
+        '## 3. past, has soon, daily, multiple participants (daily, soon)\\n<t:0:F> (<t:0:R>)\\nnotify: will not notify since marked as soon. begin: will begin, be removed, and be cloned tomorrow\\n__Participants__: Execs, Sunny'
+
+        >>> meeting2 = SAMPLE_MEETINGS[4]
+        >>> meeting2.to_discord(3, True, SAMPLE_IDS_TO_NAMES)
+        '## 4. no description\\n<t:20:F> (<t:20:R>)\\n__No participants__ 🧐'
         '''
         time = self.get_time()
         labels = self.get_labels()
@@ -136,29 +154,32 @@ class Meeting:
         Used by show command.
 
         Sample Usage:
-        >>> from sample_data import SAMPLE_MEETINGS
+        >>> from frodo_meet_data import SAMPLE_MEETINGS
 
         >>> meeting = SAMPLE_MEETINGS[1]
 
-        >>> meeting.to_display(0, ('all', 'weekly', '-1'))
+        >>> meeting.to_display(0, ('all', 'daily', '-1'))
         False
 
-        >>> meeting.to_display(0, ('-all', '-weekly', '1'))
+        >>> meeting.to_display(0, ('-all', '-daily', '1'))
         True
 
-        >>> meeting.to_display(0, ('-all', 'weekly', '-paused', '2'))
+        >>> meeting.to_display(0, ('-all', 'daily', '-soon', '2'))
         True
 
-        >>> meeting.to_display(0, ('all', '-paused', '2'))
+        >>> meeting.to_display(0, ('all', '-soon', '2'))
         False
 
-        >>> meeting.to_display(0, ('all', 'soon', '2'))
+        >>> meeting.to_display(0, ('all', 'weekly', '2'))
         True
 
-        >>> meeting.to_display(0, ('-all', 'soon', '2'))
+        >>> meeting.to_display(0, ('-all', 'weekly', '2'))
         False
 
-        >>> meeting.to_display(0, ('soon', '2'))
+        >>> SAMPLE_MEETINGS[2].to_display(0, ('2',))
+        False
+
+        >>> SAMPLE_MEETINGS[3].to_display(0, ('2',))
         False
         '''
         # Refer to normal arguments (nonnegative arguments) as +arguments.
@@ -214,9 +235,10 @@ class Meeting:
     # OPERATIONS
 
     def __lt__(self, other: Meeting) -> bool:
-        return \
-            self.get_time().get_timestamp() < \
+        return (
+            self.get_time().get_timestamp() < 
             other.get_time().get_timestamp()
+        )
     
 
     # GETTERS
@@ -231,13 +253,20 @@ class Meeting:
     def set_time(self, time: MeetingTime) -> None: self._time = time
     def set_description(self, description: str) -> None: self._description = description
     def set_participants(self, participants: list[str]) -> None: self._participants = participants
-    def set_labels(self, labels: list[str]) -> None: self._labels = labels
 
-    def add_label(self, label: str) -> bool:
-        if self.has_labels(label): return False
+    def add_label(self, label: str) -> int:
+        if self.has_labels(label): return 0
 
         self.get_labels().append(label)
-        return True
+        self.get_labels().sort(key = lambda label: LABELS_ORDER.index(label))
+
+        return 1
+    
+    def remove_label(self, label: str) -> int:
+        if not self.has_labels(label): return 0
+
+        self.get_labels().remove(label)
+        return 1
 
 
 if __name__ == '__main__':

@@ -13,33 +13,30 @@ from meeting import Meeting, \
 from meeting_time import MeetingTime
 
 
-# BOT FUNCTIONS
+# COMMAND FUNCTIONS
 
-def show_meetings(args: tuple[str], meetings: list[Meeting], ids_to_names: dict[str: str]) -> str:
+def show_meetings(filters: tuple[str], meetings: list[Meeting], ids_to_names: dict[str: str]) -> str:
     '''
     Display the meetings list in order.
     Along with displaying times, also include how much time the meeting is from now.
 
     By default, display the title, labels, & time of active meetings.
 
-    Args can be passed for more options:
+    Filters can be passed for more options:
     - full: also display description and participants.
     - all: display all meetings on record.
     - <label>: only display meetings of that label (multiple allowed).
     - <index>: only display meetings of that index (mutliple allowed).
-    - -<all/label/index>: do not display meetings relevant to -args.
+    - -<all/label/index>: do not display meetings relevant to -filters.
 
     Priority: index > label > all
-    If a meeting has an arg label and another -arg label, it will still be displayed.
-
-    Preconditions:
-    - There cannot be a + and - arg with the same label/index.
+    If a meeting has an filter label and another -filter label, it will still be displayed.
 
     Sample Usage:
     >>> from frodo_meet_data import SAMPLE_MEETINGS, SAMPLE_IDS_TO_NAMES
 
     >>> show_meetings((), [], {})
-    'There are no meetings. 🧐'
+    'No meetings exist on record. 🧐'
     
     >>> show_meetings((), SAMPLE_MEETINGS, SAMPLE_IDS_TO_NAMES)
     '## 1. past\\n<t:0:F> (<t:0:R>)\\n## 2. past, has soon, daily, multiple participants (soon, daily)\\n<t:0:F> (<t:0:R>)\\n## 5. no description\\n<t:20:F> (<t:20:R>)\\n## 6. not soon\\n<t:1000:F> (<t:1000:R>)'
@@ -54,30 +51,29 @@ def show_meetings(args: tuple[str], meetings: list[Meeting], ids_to_names: dict[
     '## 3. past, weekly, paused, no participants (weekly, paused)\\n<t:0:F> (<t:0:R>)\\n## 4. soon, canceled (canceled)\\n<t:10:F> (<t:10:R>)\\n## 5. no description\\n<t:20:F> (<t:20:R>)\\n## 6. not soon\\n<t:1000:F> (<t:1000:R>)'
 
     >>> show_meetings(('-all',), SAMPLE_MEETINGS, SAMPLE_IDS_TO_NAMES)
-    ''
+    'No meetings of such specification exists. 🧐'
 
     >>> show_meetings(('-all', 'paused', '4'), SAMPLE_MEETINGS, SAMPLE_IDS_TO_NAMES)
     '## 3. past, weekly, paused, no participants (weekly, paused)\\n<t:0:F> (<t:0:R>)\\n## 4. soon, canceled (canceled)\\n<t:10:F> (<t:10:R>)'
     '''
     # print(meetings)
 
-    if not meetings: return 'There are no meetings. 🧐'
+    if not meetings: return 'No meetings exist on record. 🧐'
 
     # Turn all args lowercase.
-    args = tuple(arg.lower() for arg in args)
+    filters = tuple(arg.lower() for arg in filters)
 
     output = ''
     for meetings_i in range(len(meetings)):
         curr_meeting = meetings[meetings_i]
 
         # If current entry is not to be displayed, skip.
-        if not curr_meeting.to_display(meetings_i, args): continue
+        if not curr_meeting.to_display(meetings_i, filters): continue
         
         # Compute and add the output for the meeting.
-        output += f'{curr_meeting.to_discord(ids_to_names, meetings_i, 'full' in args)}\n'
+        output += f'{curr_meeting.to_discord(meetings_i, 'full' in filters, ids_to_names)}\n'
     
-    # Return output, omitting the last \n.
-    return output[:-1]
+    return output[:-1] if output else 'No meetings of such specification exists. 🧐'
 
 
 def add_meeting(meetings: list[Meeting], new_meeting: Meeting) -> int:
@@ -105,6 +101,8 @@ def add_meeting(meetings: list[Meeting], new_meeting: Meeting) -> int:
 
     return meetings.index(new_meeting)
 
+
+# AUTO FUNCTIONS
 
 def notify_meetings(meetings: list[Meeting], now: MeetingTime, notice_time_secs: int) -> str:
     '''
@@ -224,6 +222,7 @@ def begin_meetings(meetings: list[Meeting], now: MeetingTime) -> str:
             recurring_label_result = RECURRING_LABELS[recurring_label[0]]
 
             clone = Meeting.clone(curr_meeting, recurring_label_result[0])
+            clone.remove_label(SOON_LABEL) # Remove soon label if applicable (likely).
             add_meeting(meetings, clone)
 
             recurring_output = f' and was cloned same time {recurring_label_result[1]}'

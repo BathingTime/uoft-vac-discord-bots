@@ -48,11 +48,11 @@ def _validate_month(arg: str) -> int | None:
     if arg in MONTHS: return (MONTHS.index(arg) // 2) + 1
 
 def _validate_day(arg: str, month_i: int | None) -> int | None:
-    if \
-        month_i != None and \
-        arg.isdigit() and \
-        1 <= int(arg) <= MONTH_LAST_DAYS[month_i] \
-    : return int(arg)
+    if (
+        month_i != None and
+        arg.isdigit() and
+        1 <= int(arg) <= MONTH_LAST_DAYS[month_i]
+    ): return int(arg)
 
 def _validate_hour(arg: str) -> int | None:
     if arg.isdigit() and 0 <= int(arg) <= 23: return int(arg)
@@ -106,11 +106,12 @@ class MeetingTime:
         # Full input.
         if len(args) == 5:
             init_args[1] = _validate_month(args[1])
-            init_args[0], init_args[2], init_args[3], init_args[4] = \
-                _validate_year(args[0]), \
-                _validate_day(args[2], init_args[1] - 1), \
-                _validate_hour(args[3]), \
+            init_args[0], init_args[2], init_args[3], init_args[4] = (
+                _validate_year(args[0]),
+                _validate_day(args[2], init_args[1] - 1),
+                _validate_hour(args[3]),
                 _validate_minute(args[4])
+            )
         
         # If any args are None, the input was invalid.
         if None in init_args: return 'Invalid time input.'
