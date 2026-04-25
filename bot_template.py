@@ -1,20 +1,18 @@
 '''Discord Bot Template
-Author: Sunny Lin
-Editors: 
-Last modified: Jul 5, 25
 
 This is a template file for starting to program Discord bots in Python.
 It should have most features a basic bot could need like command functions and auto functions.
-This file is not meant to be run.
+This particular file is not meant to be run, but your version will.
 
-TODO: Fill out information above according to your bot's purposes.
+TODO: Modify information above and code below according to your bot's purposes.
 '''
+# TODO:
 
 from discord import Intents
 from discord.ext import commands
 ...
 
-# Constants:
+# CONSTANTS
 ...
 
 
@@ -54,8 +52,11 @@ async def auto_func_eg() -> None:
         ...
 
 
-# Activate bot.
+# TODO: After doing the TODO under this block, remove this line and leave the next line as is.
+# THE CODE BODY BELOW CONTAINS SENSITIVE INFORMATION; KEEP COMPRESSED.
 if __name__ == '__main__':
+    from os import getcwd
+    print(f'Current working directory: {getcwd()}') # Possibly useful.
 
     # TODO: Enter the bot's private token (str) into the parameter of client.run.
     # DO NOT REVEAL A BOT'S TOKEN TO ANYONE OUTSIDE THE DEV TEAM.

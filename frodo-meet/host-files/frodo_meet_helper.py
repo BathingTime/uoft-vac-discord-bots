@@ -1,9 +1,6 @@
-'''Frodo Meet Bot Commands
-Author: Sunny Lin
-Editors: 
-Last modified: Apr 8, 26
+'''Frodo Meet Helper
 
-Functions to execute tasks and compute outputs for bot commands.
+Functions to execute tasks and compute outputs for the bot.
 '''
 from meeting import Meeting, \
     SOON_LABEL, \
@@ -12,8 +9,6 @@ from meeting import Meeting, \
     RECURRING_LABELS
 from meeting_time import MeetingTime
 
-
-# COMMAND FUNCTIONS
 
 def show_meetings(filters: tuple[str], meetings: list[Meeting], ids_to_names: dict[str: str]) -> str:
     '''
@@ -58,7 +53,7 @@ def show_meetings(filters: tuple[str], meetings: list[Meeting], ids_to_names: di
     '''
     # print(meetings)
 
-    if not meetings: return 'No meetings exist on record. 🧐'
+    if not meetings: return 'There are no meetings. 🧐'
 
     # Turn all args lowercase.
     filters = tuple(arg.lower() for arg in filters)
@@ -73,7 +68,7 @@ def show_meetings(filters: tuple[str], meetings: list[Meeting], ids_to_names: di
         # Compute and add the output for the meeting.
         output += f'{curr_meeting.to_discord(meetings_i, 'full' in filters, ids_to_names)}\n'
     
-    return output[:-1] if output else 'No meetings of such specification exists. 🧐'
+    return output[:-1] if output else 'There are no meetings of such specification. 🧐'
 
 
 def add_meeting(meetings: list[Meeting], new_meeting: Meeting) -> int:
@@ -100,6 +95,38 @@ def add_meeting(meetings: list[Meeting], new_meeting: Meeting) -> int:
     meetings.sort()
 
     return meetings.index(new_meeting)
+
+
+def find_meeting(meetings: list[Meeting], target: str) -> Meeting | str:
+    '''
+    Given a target string, find a meeting in the meetings list.
+    Return the meeting object if found, and an error message otherwise.
+
+    A digit target string will be interpreted as an index (1-indexed):
+    - Find the meeting at the corresponding 0-indexed index.
+    A non-digit target string will be interpreted as a title:
+    - Find the first meeting with the same title.
+    
+    Sample Usage:
+    >>>
+    '''
+    # If target is an index:
+    if target.isdigit():
+        index = int(target) - 1
+
+        if not 0 <= index < len(meetings):
+            return f'Given index is invalid; must be **1–{len(meetings)}**. 🧐'
+        
+        return meetings[index]
+    
+    # Otherwise, target is a title:
+    for meetings_i in range(len(meetings)):
+        curr_meeting = meetings[meetings_i]
+
+        if curr_meeting.get_title().strip().lower() == target.strip().lower():
+            return curr_meeting
+    
+    return 'There is no meeting with that title. 🧐'
 
 
 # AUTO FUNCTIONS

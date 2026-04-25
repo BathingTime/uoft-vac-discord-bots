@@ -1,27 +1,31 @@
-'''Add Command Input Modal
-Author: Sunny Lin
-Editors: 
-Last modified: Apr 7, 26
-
-Input modal for the add command.
+'''Create Meeting Command
 '''
 from discord import Interaction, SelectOption, ButtonStyle
 from discord.ui import Modal, TextInput, View, Select, button, Button
 
 from common_bot_helper import await_message_default, RESPONSE_TIMEOUT, NULL_OPTION_VALUE
 
-from frodo_meet_commands import add_meeting
+from frodo_meet_helper import add_meeting
 from frodo_meet_data import write_meetings, DATA_FILE_PATH
 
 from meeting import Meeting, DAILY_LABEL, WEEKLY_LABEL, YEARLY_LABEL
 from meeting_time import MeetingTime
 
 
-class AddInputModal(Modal, title='Add Meeting'):
+async def create_meeting(interaction: Interaction, meetings: list[Meeting], ids_to_names: dict[str: str]) -> None:
+    await interaction.response.defer()
+
+    await interaction.response.send_modal(CreateInputModal(
+        meetings,
+        ids_to_names
+    ))
+
+
+class CreateInputModal(Modal, title = 'Create Meeting'):
     _meetings: list[Meeting]
     _ids_to_names: dict[str: str]
 
-    # STEP 1: get title, time, and description.
+    # STEP 1: Get title, time, and description.
     _title_input = TextInput(label='Title')
     _time_input = TextInput(label='Time')
     _description_input = TextInput(label='Description', required=False)
@@ -32,15 +36,16 @@ class AddInputModal(Modal, title='Add Meeting'):
         self._ids_to_names = ids_to_names
 
     async def on_submit(self, interaction: Interaction) -> None:
+        await interaction.response.defer()
 
-        # If time input was invalid, print error message.
+        # If time input was invalid, send error message.
         time = MeetingTime.from_input(self._time_input.value)
         if isinstance(time, str):
-            await interaction.response.send_message(time)
+            await interaction.followup.send(time)
             return
         
-        # STEP 1: get participants on next message.
-        await interaction.response.send_message(
+        # STEP 2: Get participants on next message.
+        await interaction.followup.send(
             'Enter **pings** for all participants you want to add for this meeting, separated by spaces. (roles or users)\n'
             'E.g. @Lead @Frodo Meet\n'
             'Or type any non-ping message to skip.'
@@ -64,7 +69,7 @@ class AddInputModal(Modal, title='Add Meeting'):
             participants,
         )
 
-        # STEP 3: get optional recurring option.
+        # STEP 3: Get optional recurring option.
         await interaction.followup.send(
             'Would you like to make this a recurrence meeting?\n'
             'For a one-time meeting, select *One-time*.',
@@ -112,9 +117,9 @@ class RecurringOptionSelection(Select):
         if recurring_label != NULL_OPTION_VALUE:
             new_meeting.add_label(recurring_label)
 
-        # STEP 4: get confirmation to create meeting.
-        await interaction.response.edit_message(
-            content=(
+        # STEP 4: Get confirmation to create meeting.
+        await interaction.followup.send(
+            content = (
                 'New meeting:\n'
                 f'{new_meeting.to_discord(full = True, ids_to_names = parent_view._ids_to_names,)}\n\n'
                 'Would you like to create this meeting?'
@@ -133,7 +138,7 @@ class ConfirmationView(View):
         self._new_meeting = new_meeting
 
     # CONFIRM
-    @button(label = "Yes", style = ButtonStyle.green)
+    @button(label = 'Yes', style = ButtonStyle.green)
     async def confirm(self, interaction: Interaction, _: Button):
         meetings, new_meeting = self._meetings, self._new_meeting
 
@@ -141,15 +146,15 @@ class ConfirmationView(View):
         add_meeting(meetings, new_meeting)
         write_meetings(DATA_FILE_PATH, meetings)
 
-        await interaction.response.edit_message(
+        await interaction.followup.send(
             content = f'{new_meeting.get_title(True)} has been created! ✨',
             view = None
         )
 
     # CANCEL
-    @button(label = "No", style = ButtonStyle.red)
+    @button(label = 'No', style = ButtonStyle.red)
     async def cancel(self, interaction: Interaction, _: Button):
-        await interaction.response.edit_message(
+        await interaction.followup.send(
             content = f'{self._new_meeting.get_title(True)} has been discarded. 🗑️',
             view = None
         )

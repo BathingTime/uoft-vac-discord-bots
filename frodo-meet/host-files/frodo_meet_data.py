@@ -1,7 +1,4 @@
 '''Frodo Meet Data
-Author: Sunny Lin
-Editors:
-Last modified: Apr 6, 26
 
 Functions to fetch from and write to files data.
 '''

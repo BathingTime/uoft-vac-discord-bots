@@ -1,7 +1,5 @@
 # Frodo Meet
-Author: Sunny Lin \
-Editors: \
-Last modified: Apr 6, 26
+Author: Sunny Lin
 
 ---
 ### Meeting Entries

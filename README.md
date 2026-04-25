@@ -1,7 +1,4 @@
 # Here are the UofT Visual Arts Club's Discord bots.
-Author: Sunny Lin \
-Editors: \
-Last modified: Jul 9, 25
 
 ---
 ### <mark><ins>IMPORTANT</ins></mark>

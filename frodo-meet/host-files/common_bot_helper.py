@@ -1,7 +1,4 @@
 '''Common Bot Helper
-Author: Sunny Lin
-Editors: 
-Last modified: Apr 7, 26
 
 Functions that many bots will likely find useful.
 To be deployed along with bot host files.

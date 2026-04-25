@@ -1,7 +1,4 @@
 '''Meeting class
-Author: Sunny Lin
-Editors: 
-Last modified: Apr 6, 26
 '''
 from __future__ import annotations
 

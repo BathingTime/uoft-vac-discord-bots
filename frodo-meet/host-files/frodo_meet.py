@@ -1,7 +1,4 @@
 '''Frodo Meet
-Author: Sunny Lin
-Editors: 
-Last modified: Apr 7, 26
 
 UofT Visual Arts Club exec team's Discord bot for easy meeting plan management.
 
@@ -11,31 +8,32 @@ Stores and reads meeting data in meetings_data.json.
 
 Driver file.
 '''
-# TODO: Cancel, edit functions.
-# TODO: Check + notify auto function.
+# TODO: edit
 
 from discord import Intents, Interaction, Guild
 from discord.ext import commands
-# from discord.ext.commands import Context
 
 from asyncio import sleep
 
 from common_bot_helper import read_json_file, parse_input, chop_output
 
-import frodo_meet_commands
+import frodo_meet_helper
 from frodo_meet_data import get_meetings, write_meetings, DATA_FILE_PATH
 from meeting_time import MeetingTime
 
-from add_input_modal import AddInputModal
+import command_create
+import command_delete
 
 
 # CONSTANTS
 
 NOTIFY_CHANNEL_ID = 1491494362205392976
 
-CHECK_INTERVAL_SECS = 10 # Seconds between each check for meetings to notify/begin.
-NOTICE_TIME_MINS = 5 # Notify meetings that will begin in less than this number of minutes.
+CHECK_INTERVAL_SECS = 60 # Seconds between each check for meetings to notify/begin.
+NOTICE_TIME_SECS = 5 * 60 # Notify meetings that will begin in less than this number of minutes.
 
+
+# LAUNCH
 
 intents = Intents.default()
 intents.message_content = True
@@ -45,6 +43,24 @@ bot = commands.Bot(command_prefix='.', intents=intents)
 tree = bot.tree
 command = tree.command
 
+background_task = None
+
+@bot.event
+async def on_ready():
+    global background_task
+
+    await tree.sync()
+    print('Logged in as {0.user}'.format(bot))
+
+    if background_task is not None:
+        print('Background task already exists.')
+        return
+
+    background_task = bot.loop.create_task(auto_notify_n_begin(
+        bot.get_channel(NOTIFY_CHANNEL_ID),
+        NOTICE_TIME_SECS
+    ))
+
 
 # COMMANDS FUNCTIONS
 
@@ -53,7 +69,7 @@ command = tree.command
     description = 'Display recorded meeting plans.'
 )
 async def show_meetings(interaction: Interaction, filters: str = '') -> None:
-    await interaction.response.send_message(frodo_meet_commands.show_meetings(
+    await interaction.response.send_message(frodo_meet_helper.show_meetings(
         parse_input(filters, ' '),
         get_meetings(read_json_file(DATA_FILE_PATH)),
         get_ids_to_names(interaction.guild)
@@ -61,15 +77,25 @@ async def show_meetings(interaction: Interaction, filters: str = '') -> None:
 
 @command(
     name = 'create-meeting',
-    description='Create a new meeting!'
+    description = 'Create a new meeting!'
 )
 async def create_meeting(interaction: Interaction) -> None:
-    await interaction.response.send_modal(AddInputModal(
+    await command_create.create_meeting(
         get_meetings(read_json_file(DATA_FILE_PATH)),
         get_ids_to_names(interaction.guild)
-    ))
+    )
 
-
+@command(
+    name = 'delete-meeting',
+    description = 'Delete an existing meeting.'
+)
+async def delete_meeting(interaction: Interaction, target: str = None) -> None:
+    await command_delete.delete_meeting(
+        interaction,
+        target,
+        get_meetings(read_json_file(DATA_FILE_PATH)),
+        get_ids_to_names(interaction.guild)
+    )
 
 
 # AUTO FUNCTION
@@ -91,11 +117,11 @@ async def auto_notify_n_begin(notify_channel, notice_time_secs: int) -> None:
         now = MeetingTime.get_now()
 
         # Check for any meetings to notify and get the output.
-        notify_output = frodo_meet_commands.notify_meetings(meetings, now, notice_time_secs)
+        notify_output = frodo_meet_helper.notify_meetings(meetings, now, notice_time_secs)
         # print('got notify output')
 
         # Check for any meetings to begin and get the output.
-        begin_output = frodo_meet_commands.begin_meetings(meetings, now)
+        begin_output = frodo_meet_helper.begin_meetings(meetings, now)
         # print('got begin output')
 
         # Meetings list may be modified, so update data file.
@@ -119,24 +145,6 @@ async def auto_notify_n_begin(notify_channel, notice_time_secs: int) -> None:
 
         # Sleep for the specified interval.
         await sleep(CHECK_INTERVAL_SECS)
-
-background_task = None
-
-@bot.event
-async def on_ready():
-    global background_task
-
-    await tree.sync()
-    print('Logged in as {0.user}'.format(bot))
-
-    if background_task is not None:
-        print('Background task already exists.')
-        return
-
-    background_task = bot.loop.create_task(auto_notify_n_begin(
-        bot.get_channel(NOTIFY_CHANNEL_ID),
-        NOTICE_TIME_MINS * 60
-    ))
 
 
 # HELPER FUNCTIONS
