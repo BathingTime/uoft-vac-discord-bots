@@ -1,9 +1,9 @@
 '''Create Meeting Command
 '''
-from discord import Interaction, SelectOption, ButtonStyle
-from discord.ui import Modal, TextInput, View, Select, button, Button
+from discord import Interaction, SelectOption
+from discord.ui import Modal, TextInput, View, Select
 
-from common_bot_helper import await_message_default, RESPONSE_TIMEOUT, NULL_OPTION_VALUE
+from common_bot_helper import await_message_default, ConfirmationViewDefault, RESPONSE_TIMEOUT, NULL_OPTION_VALUE
 
 from frodo_meet_helper import add_meeting
 from frodo_meet_data import write_meetings, DATA_FILE_PATH
@@ -13,8 +13,6 @@ from meeting_time import MeetingTime
 
 
 async def create_meeting(interaction: Interaction, meetings: list[Meeting], ids_to_names: dict[str: str]) -> None:
-    await interaction.response.defer()
-
     await interaction.response.send_modal(CreateInputModal(
         meetings,
         ids_to_names
@@ -36,16 +34,15 @@ class CreateInputModal(Modal, title = 'Create Meeting'):
         self._ids_to_names = ids_to_names
 
     async def on_submit(self, interaction: Interaction) -> None:
-        await interaction.response.defer()
 
-        # If time input was invalid, send error message.
+        # If time input was invalid, print error message.
         time = MeetingTime.from_input(self._time_input.value)
         if isinstance(time, str):
-            await interaction.followup.send(time)
+            await interaction.response.send_message(time)
             return
         
-        # STEP 2: Get participants on next message.
-        await interaction.followup.send(
+        # STEP 2: Get participants.
+        await interaction.response.send_message(
             'Enter **pings** for all participants you want to add for this meeting, separated by spaces. (roles or users)\n'
             'E.g. @Lead @Frodo Meet\n'
             'Or type any non-ping message to skip.'
@@ -69,9 +66,9 @@ class CreateInputModal(Modal, title = 'Create Meeting'):
             participants,
         )
 
-        # STEP 3: Get optional recurring option.
+        # STEP 3: Get recurrence option.
         await interaction.followup.send(
-            'Would you like to make this a recurrence meeting?\n'
+            'Would you like to make this a recurring meeting?\n'
             'For a one-time meeting, select *One-time*.',
             view = RecurringOptionsView(self._meetings, self._ids_to_names, new_meeting)
         )
@@ -111,50 +108,54 @@ class RecurringOptionSelection(Select):
         recurring_label = self.values[0]
 
         parent_view = self._parent_view
+        meetings = parent_view._meetings
+        ids_to_names = parent_view._ids_to_names
         new_meeting = parent_view._new_meeting
 
         # If a recurring label was selected, add it.
         if recurring_label != NULL_OPTION_VALUE:
             new_meeting.add_label(recurring_label)
 
-        # STEP 4: Get confirmation to create meeting.
-        await interaction.followup.send(
+        # STEP 4: Confirmation.
+        await interaction.response.edit_message(
             content = (
                 'New meeting:\n'
                 f'{new_meeting.to_discord(full = True, ids_to_names = parent_view._ids_to_names,)}\n\n'
                 'Would you like to create this meeting?'
             ),
-            view = ConfirmationView(parent_view._meetings, new_meeting)
+            view = ConfirmationViewDefault(
+                on_confirm = on_confirm,
+                on_cancel = on_cancel,
+                response_timeout = RESPONSE_TIMEOUT,
+                meetings = meetings,
+                ids_to_names = ids_to_names,
+                new_meeting = new_meeting,
+                data_file_path = DATA_FILE_PATH
+            )
         )
 
 
-class ConfirmationView(View):
-    _meetings: list[Meeting]
-    _new_meeting: Meeting
+async def on_confirm(
+    interaction: Interaction,
+    meetings: list[Meeting],
+    new_meeting: Meeting,
+    data_file_path: str,
+    **_
+) -> None:
+    add_meeting(meetings, new_meeting)
+    write_meetings(data_file_path, meetings)
 
-    def __init__(self, meetings: list[Meeting], new_meeting: Meeting) -> None:
-        super().__init__(timeout = RESPONSE_TIMEOUT)
-        self._meetings = meetings
-        self._new_meeting = new_meeting
+    await interaction.message.edit(content =
+        f'{new_meeting.get_title(True)} has been created! ✨',
+        view = None
+    )
 
-    # CONFIRM
-    @button(label = 'Yes', style = ButtonStyle.green)
-    async def confirm(self, interaction: Interaction, _: Button):
-        meetings, new_meeting = self._meetings, self._new_meeting
-
-        # Add meeting to meetings list and update data file.
-        add_meeting(meetings, new_meeting)
-        write_meetings(DATA_FILE_PATH, meetings)
-
-        await interaction.followup.send(
-            content = f'{new_meeting.get_title(True)} has been created! ✨',
-            view = None
-        )
-
-    # CANCEL
-    @button(label = 'No', style = ButtonStyle.red)
-    async def cancel(self, interaction: Interaction, _: Button):
-        await interaction.followup.send(
-            content = f'{self._new_meeting.get_title(True)} has been discarded. 🗑️',
-            view = None
-        )
+async def on_cancel(
+    interaction: Interaction,
+    new_meeting: Meeting,
+    **_
+) -> None:
+    await interaction.message.edit(content =
+        f'{new_meeting.get_title(True)} has been discarded! 🗑️',
+        view = None
+    )

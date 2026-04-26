@@ -111,7 +111,7 @@ class MeetingTime:
             )
         
         # If any args are None, the input was invalid.
-        if None in init_args: return 'Invalid time input.'
+        if None in init_args: return 'Invalid time input. 🧐'
         
         return cls(datetime(*init_args, tzinfo=TORONTO_TIMEZONE).timestamp())
     

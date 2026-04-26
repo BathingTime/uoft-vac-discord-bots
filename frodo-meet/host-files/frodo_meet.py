@@ -10,7 +10,7 @@ Driver file.
 '''
 # TODO: edit
 
-from discord import Intents, Interaction, Guild
+from discord import Intents, Interaction, Guild, TextChannel
 from discord.ext import commands
 
 from asyncio import sleep
@@ -81,6 +81,7 @@ async def show_meetings(interaction: Interaction, filters: str = '') -> None:
 )
 async def create_meeting(interaction: Interaction) -> None:
     await command_create.create_meeting(
+        interaction,
         get_meetings(read_json_file(DATA_FILE_PATH)),
         get_ids_to_names(interaction.guild)
     )
@@ -100,7 +101,7 @@ async def delete_meeting(interaction: Interaction, target: str = None) -> None:
 
 # AUTO FUNCTION
 
-async def auto_notify_n_begin(notify_channel, notice_time_secs: int) -> None:
+async def auto_notify_n_begin(notify_channel: TextChannel, notice_time_secs: int) -> None:
     '''
     Every specified interval:
     1. Check if there are any meetings that are about to start, given a timeframe.

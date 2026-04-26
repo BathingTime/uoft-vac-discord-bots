@@ -1,9 +1,8 @@
 '''Delete Meeting Command
 '''
-from discord import Interaction, ButtonStyle
-from discord.ui import View, button, Button
+from discord import Interaction
 
-from common_bot_helper import await_message_default, RESPONSE_TIMEOUT
+from common_bot_helper import await_message_default, ConfirmationViewDefault, RESPONSE_TIMEOUT
 
 from frodo_meet_helper import find_meeting, show_meetings
 from frodo_meet_data import write_meetings, DATA_FILE_PATH
@@ -41,52 +40,53 @@ async def delete_meeting(interaction: Interaction, target: str, meetings: list[M
         return
     
     # Otherwise, target meeting has been found.
-    # Get confirmation to delete meeting.
+    # Confirmation.
     await interaction.followup.send(
-            content=(
-                'Target meeting:\n'
-                f'{target_meeting.to_discord(full = True, ids_to_names = ids_to_names)}\n\n'
-                'Would you like to delete this meeting?'
-            ),
-            view = ConfirmationView(meetings, target_meeting)
+        content = (
+            'Target meeting:\n'
+            f'{target_meeting.to_discord(full = True, ids_to_names = ids_to_names,)}\n\n'
+            'Would you like to delete this meeting?'
+        ),
+        view = ConfirmationViewDefault(
+            on_confirm = on_confirm,
+            on_cancel = on_cancel,
+            response_timeout = RESPONSE_TIMEOUT,
+            meetings = meetings,
+            target_meeting = target_meeting,
+            data_file_path = DATA_FILE_PATH
         )
+    )
 
 
-class ConfirmationView(View):
-    _meetings: list[Meeting]
-    _target_meeting: Meeting
-
-    def __init__(self, meetings: list[Meeting], target_meeting: Meeting) -> None:
-        super().__init__(timeout = RESPONSE_TIMEOUT)
-        self._meetings = meetings
-        self._target_meeting = target_meeting
-
-    # CONFIRM
-    @button(label = 'Yes', style = ButtonStyle.green)
-    async def confirm(self, interaction: Interaction, _: Button):
-        meetings, target_meeting = self._meetings, self._target_meeting
-
-        # If meeting is no longer in meetings list, print a message.
-        # Possible if a meeting began before confirming.
-        if not target_meeting in meetings:
-            await interaction.followup.send(
-                content = f'It seems {target_meeting.get_title(True)} does not exist at the time of confirmation; nothing to delete. 🧐',
-                view = None
-            )
-
-        # Remove meeting from meetings list and update data file.
-        meetings.remove(target_meeting)
-        write_meetings(DATA_FILE_PATH, meetings)
-
-        await interaction.followup.send(
-            content = f'{target_meeting.get_title(True)} has been deleted! 💥',
+async def on_confirm(
+    interaction: Interaction,
+    meetings: list[Meeting],
+    target_meeting: Meeting,
+    data_file_path: str,
+    **_
+) -> None:
+    # If meeting is no longer in meetings list, print a message.
+    # Possible if a meeting began before confirming.
+    if not target_meeting in meetings:
+        await interaction.message.edit(content =
+            f'It seems {target_meeting.get_title(True)} does not exist at the time of confirmation; nothing to delete. 🧐',
             view = None
         )
 
-    # CANCEL
-    @button(label = 'No', style = ButtonStyle.red)
-    async def cancel(self, interaction: Interaction, _: Button):
-        await interaction.followup.send(
-            content = f'{self._target_meeting.get_title(True)} was not spared. 😇',
-            view = None
-        )
+    meetings.remove(target_meeting)
+    write_meetings(data_file_path, meetings)
+
+    await interaction.message.edit(content =
+        f'{target_meeting.get_title(True)} has been deleted! 💥',
+        view = None
+    )
+
+async def on_cancel(
+    interaction: Interaction,
+    target_meeting: Meeting,
+    **_
+) -> None:
+    await interaction.message.edit(content =
+        f'{target_meeting.get_title(True)} was spared. 😇',
+        view = None
+    )

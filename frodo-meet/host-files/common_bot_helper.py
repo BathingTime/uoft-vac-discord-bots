@@ -3,7 +3,9 @@
 Functions that many bots will likely find useful.
 To be deployed along with bot host files.
 '''
-from discord import Interaction, Message
+from discord import Interaction, Message, ButtonStyle
+from discord.ui import View, button, Button
+
 from json import load, dump
 from re import split
 
@@ -38,31 +40,35 @@ def parse_input(input: str, breakpoints_re: str) -> list[str]:
     '''
     Given an input string and a regex of breakpoints, return a list of the args (substrings) from the input split by the breakpoints.
     Also make all args lowercase.
-
-    Sample Usage:
-    >>> parse_input('', ' ')
-    []
-
-    >>> parse_input('a b c', ' ')
-    ['a', 'b', 'c']
-
-    >>> parse_input('  a  b   C    ', ' ')
-    ['a', 'b', 'c']
-
-    >>> parse_input('a b, c', ',')
-    ['a b', 'c']
-
-    >>> parse_input('a, b ,c', ' ,')
-    ['a, b', 'c']
-
-    >>> parse_input('a, b ,c', '[ ,]')
-    ['a', 'b', 'c']
     '''
     return [
         arg.strip().lower()
         for arg in split(breakpoints_re, input)
         if arg.strip()
     ]
+
+
+class ConfirmationViewDefault(View):
+    def __init__(
+        self,
+        on_confirm: callable,
+        on_cancel: callable,
+        response_timeout: float = RESPONSE_TIMEOUT,
+        **data
+    ):
+        super().__init__(timeout = response_timeout)
+
+        self._on_confirm = on_confirm
+        self._on_cancel = on_cancel
+        self._data = data
+    
+    @button(label='Yes', style=ButtonStyle.green)
+    async def confirm(self, interaction: Interaction, _: Button):
+        await self._on_confirm(interaction, **self._data)
+    
+    @button(label='No', style=ButtonStyle.red)
+    async def cancel(self, interaction: Interaction, _: Button):
+        await self._on_cancel(interaction, **self._data)
 
 
 # OUTPUT FUNCTIONS
