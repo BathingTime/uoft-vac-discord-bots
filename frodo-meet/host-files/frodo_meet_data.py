@@ -1,9 +1,14 @@
-'''Frodo Meet Data
+'''Frodo Meet - Data
 
 Functions to fetch from and write to files data.
 '''
 from common_bot_helper import read_json_file, write_json_file
-from meeting import Meeting
+from meeting import Meeting,\
+    ATTRIBUTE_TITLE,\
+    ATTRIBUTE_TIME,\
+    ATTRIBUTE_DESCRIPTION,\
+    ATTRIBUTE_PARTICIPANTS,\
+    ATTRIBUTE_LABELS
 from meeting_time import MeetingTime
 
 # Data file path
@@ -30,11 +35,11 @@ SAMPLE_MEETINGS = get_meetings(SAMPLE_MEETINGS_DATA) # Sample data
 def write_meetings(file_path: str, meetings: list[Meeting]) -> None:
     '''Given a list of Meeting objects, write the data to the json file.'''
     write_json_file(file_path, {'meetings': [{
-        'title': meeting.get_title(),
-        'time': meeting.get_time().get_timestamp(),
-        'description': meeting.get_description(),
-        'participants': meeting.get_participants(),
-        'labels': meeting.get_labels(),
+        ATTRIBUTE_TITLE: meeting.get_title(),
+        ATTRIBUTE_TIME: meeting.get_time().get_timestamp(),
+        ATTRIBUTE_DESCRIPTION: meeting.get_description(),
+        ATTRIBUTE_PARTICIPANTS: meeting.get_participants(),
+        ATTRIBUTE_LABELS: meeting.get_labels(),
     } for meeting in meetings]})
 
 

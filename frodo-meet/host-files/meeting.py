@@ -1,10 +1,17 @@
-'''Meeting class
+'''Frodo Meet - Meeting Class
 '''
 from __future__ import annotations
 
 from re import sub
 
 from meeting_time import MeetingTime
+
+
+ATTRIBUTE_TITLE = 'title'
+ATTRIBUTE_TIME = 'time'
+ATTRIBUTE_DESCRIPTION = 'description'
+ATTRIBUTE_PARTICIPANTS = 'participants'
+ATTRIBUTE_LABELS = 'labels'
 
 SOON_LABEL = 'soon' # Will begin in within notice time.
 CANCELED_LABEL = 'canceled' # Will not notify.
@@ -55,11 +62,11 @@ class Meeting:
     @classmethod
     def from_file(cls, entry_data: dict) -> Meeting:
         return cls(
-            entry_data['title'],
-            MeetingTime(entry_data['time']),
-            entry_data['description'],
-            entry_data['participants'],
-            entry_data['labels'],
+            entry_data[ATTRIBUTE_TITLE],
+            MeetingTime(entry_data[ATTRIBUTE_TIME]),
+            entry_data[ATTRIBUTE_DESCRIPTION],
+            entry_data[ATTRIBUTE_PARTICIPANTS],
+            entry_data[ATTRIBUTE_LABELS],
         )
     
     @classmethod

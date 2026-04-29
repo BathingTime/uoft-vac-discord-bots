@@ -11,7 +11,8 @@ from re import split
 
 RESPONSE_TIMEOUT = 60 # Bots will stop waiting for responses after this number of seconds.
 WORD_LIMIT = 2000 # Word limit for Discord messages; might vary, but this is a safe value.
-NULL_OPTION_VALUE = '0' # Discord option values must be nonempty strings, so use this for null option.
+NULL_SELECT_VALUE = '0' # Discord select values must be nonempty strings, so use this for null option (unless it is used for a legitemate option).
+MAX_SELECTS = 25 # Max number of select options for one message (supposedly).
 
 
 # FILE FUNCTIONS
@@ -25,38 +26,41 @@ def write_json_file(file_path: str, data: dict) -> None:
 
 # INPUT FUNCTIONS
 
-async def await_message_default(interaction: Interaction, timeout: float) -> Message:
-    def check_default(message: Message) -> bool:
+async def get_response(interaction: Interaction, timeout: float) -> Message:
+    '''
+    Awaits and reads a user's input in an interaction.
+    Terminates upon timeout.
+    '''
+    def check(message: Message) -> bool:
         '''From same user in the same channel.'''
         return (
             message.author == interaction.user and
             message.channel == interaction.channel
         )
 
-    return await interaction.client.wait_for('message', check=check_default, timeout=timeout)
+    try: return await interaction.client.wait_for(
+        'message',
+        check = check,
+        timeout = timeout
+    )
 
-
-def parse_input(input: str, breakpoints_re: str) -> list[str]:
-    '''
-    Given an input string and a regex of breakpoints, return a list of the args (substrings) from the input split by the breakpoints.
-    Also make all args lowercase.
-    '''
-    return [
-        arg.strip().lower()
-        for arg in split(breakpoints_re, input)
-        if arg.strip()
-    ]
+    except TimeoutError: await interaction.followup.send('Response timeout. ⚠️')
 
 
 class ConfirmationViewDefault(View):
+    '''
+    Prints a message with Yes and No buttons.
+    Functions can be passed to specify the task for either case.
+    Terminates upon timeout.
+    '''
     def __init__(
         self,
         on_confirm: callable,
         on_cancel: callable,
-        response_timeout: float = RESPONSE_TIMEOUT,
+        timeout: float = RESPONSE_TIMEOUT,
         **data
     ):
-        super().__init__(timeout = response_timeout)
+        super().__init__(timeout = timeout)
 
         self._on_confirm = on_confirm
         self._on_cancel = on_cancel
@@ -69,6 +73,18 @@ class ConfirmationViewDefault(View):
     @button(label='No', style=ButtonStyle.red)
     async def cancel(self, interaction: Interaction, _: Button):
         await self._on_cancel(interaction, **self._data)
+
+
+def parse_input(input: str, breakpoints_re: str) -> list[str]:
+    '''
+    Given an input string and a regex of breakpoints, return a list of the args (substrings) from the input split by the breakpoints.
+    Also make all args lowercase.
+    '''
+    return [
+        arg.strip().lower()
+        for arg in split(breakpoints_re, input)
+        if arg.strip()
+    ]
 
 
 # OUTPUT FUNCTIONS

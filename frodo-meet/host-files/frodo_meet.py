@@ -23,6 +23,8 @@ from meeting_time import MeetingTime
 
 import command_create
 import command_delete
+import command_edit
+from auto_functions import notify_meetings, begin_meetings
 
 
 # CONSTANTS
@@ -62,7 +64,7 @@ async def on_ready():
     ))
 
 
-# COMMANDS FUNCTIONS
+# COMMANDS
 
 @command(
     name = 'show-meetings',
@@ -93,9 +95,21 @@ async def create_meeting(interaction: Interaction) -> None:
 async def delete_meeting(interaction: Interaction, target: str = None) -> None:
     await command_delete.delete_meeting(
         interaction,
-        target,
         get_meetings(read_json_file(DATA_FILE_PATH)),
-        get_ids_to_names(interaction.guild)
+        get_ids_to_names(interaction.guild),
+        target
+    )
+
+@command(
+    name = 'edit-meeting',
+    description = 'Edit a property for an existing meeting.'
+)
+async def edit_meeting(interaction: Interaction, target: str = None) -> None:
+    await command_edit.edit_meeting(
+        interaction,
+        get_meetings(read_json_file(DATA_FILE_PATH)),
+        get_ids_to_names(interaction.guild),
+        target
     )
 
 
@@ -118,11 +132,11 @@ async def auto_notify_n_begin(notify_channel: TextChannel, notice_time_secs: int
         now = MeetingTime.get_now()
 
         # Check for any meetings to notify and get the output.
-        notify_output = frodo_meet_helper.notify_meetings(meetings, now, notice_time_secs)
+        notify_output = notify_meetings(meetings, now, notice_time_secs)
         # print('got notify output')
 
         # Check for any meetings to begin and get the output.
-        begin_output = frodo_meet_helper.begin_meetings(meetings, now)
+        begin_output = begin_meetings(meetings, now)
         # print('got begin output')
 
         # Meetings list may be modified, so update data file.

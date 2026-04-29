@@ -1,4 +1,4 @@
-'''MeetingTime class
+'''Frodo Meet - MeetingTime Class
 '''
 from __future__ import annotations
 
