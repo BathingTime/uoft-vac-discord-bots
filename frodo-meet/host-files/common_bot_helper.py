@@ -26,7 +26,7 @@ def write_json_file(file_path: str, data: dict) -> None:
 
 # INPUT FUNCTIONS
 
-async def get_response(interaction: Interaction, timeout: float) -> Message:
+async def get_response(interaction: Interaction, timeout: float = RESPONSE_TIMEOUT) -> Message:
     '''
     Awaits and reads a user's input in an interaction.
     Terminates upon timeout.
@@ -53,12 +53,16 @@ class ConfirmationViewDefault(View):
     Functions can be passed to specify the task for either case.
     Terminates upon timeout.
     '''
+    _on_confirm: callable
+    _on_cancel: callable
+    _data: dict
+
     def __init__(
         self,
         on_confirm: callable,
         on_cancel: callable,
         timeout: float = RESPONSE_TIMEOUT,
-        **data
+        **data: dict
     ):
         super().__init__(timeout = timeout)
 
@@ -75,15 +79,16 @@ class ConfirmationViewDefault(View):
         await self._on_cancel(interaction, **self._data)
 
 
-def parse_input(input: str, breakpoints_re: str) -> list[str]:
+def parse_input(input: str, breakpoints_re: str, lower: bool = True) -> list[str]:
     '''
-    Given an input string and a regex of breakpoints, return a list of the args (substrings) from the input split by the breakpoints.
-    Also make all args lowercase.
+    Given an input string and a regex of breakpoints,
+    return a list of the args (substrings) from the input split by the breakpoints.
+    Can choose whether to make all args lowercase.
     '''
     return [
-        arg.strip().lower()
+        arg.lower() if lower else arg
         for arg in split(breakpoints_re, input)
-        if arg.strip()
+        if arg
     ]
 
 

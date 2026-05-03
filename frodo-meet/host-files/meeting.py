@@ -11,23 +11,31 @@ ATTRIBUTE_TITLE = 'title'
 ATTRIBUTE_TIME = 'time'
 ATTRIBUTE_DESCRIPTION = 'description'
 ATTRIBUTE_PARTICIPANTS = 'participants'
-ATTRIBUTE_LABELS = 'labels'
+ATTRIBUTE_RECURRENCE = 'recurrence'
+ATTRIBUTE_ACTIVE = 'active'
+ATTRIBUTE_SOON = 'soon'
+ATTRIBUTE_RECURRING = 'recurring' # Only used by to_display; not an attribute of a Meeting object.
 
-SOON_LABEL = 'soon' # Will begin in within notice time.
-CANCELED_LABEL = 'canceled' # Will not notify.
-# Recurring labels: will be cloned the same time next occurrence upon beginning.
-DAILY_LABEL = 'daily'
-WEEKLY_LABEL = 'weekly'
-YEARLY_LABEL = 'yearly'
-PAUSED_LABEL = 'paused' # All subsequent meetings will not notify (for recurring meetings).
+# Recurrence: will be cloned the same time next occurrence upon beginning.
+RECURRENCE_DAILY = 'daily'
+RECURRENCE_WEEKLY = 'weekly'
+RECURRENCE_YEARLY = 'yearly'
 
-LABELS_ORDER = (DAILY_LABEL, WEEKLY_LABEL, YEARLY_LABEL, PAUSED_LABEL, CANCELED_LABEL, SOON_LABEL)
-NON_BEGIN_LABELS = (CANCELED_LABEL, PAUSED_LABEL)
-NON_NOTIFY_LABELS = (SOON_LABEL,) + NON_BEGIN_LABELS
-RECURRING_LABELS = { # Map recurring labels to corresponding number of seconds to increment the clone.
-    DAILY_LABEL: (24 * 60 * 60, 'tomorrow'),
-    WEEKLY_LABEL: (7 * 24 * 60 * 60, 'next week'),
-    YEARLY_LABEL: (365 * 24 * 60 * 60, 'next year')
+RECURRENCE_INC = False
+RECURRENCE_MESSAGE = True
+RECURRENCE_MAPPING = { # Map recurring labels to corresponding number of seconds to increment the clone.
+    RECURRENCE_DAILY: {
+        RECURRENCE_INC: 24 * 60 * 60,
+        RECURRENCE_MESSAGE: 'tomorrow'
+    },
+    RECURRENCE_WEEKLY: {
+        RECURRENCE_INC: 7 * 24 * 60 * 60,
+        RECURRENCE_MESSAGE: 'next week'
+    },
+    RECURRENCE_YEARLY: {
+        RECURRENCE_INC: 365 * 24 * 60 * 60,
+        RECURRENCE_MESSAGE: 'next year'
+    }
 }
 
 
@@ -41,20 +49,26 @@ class Meeting:
     _time: MeetingTime
     _description: str
     _participants: list[str]
-    _labels: list[str]
+    _recurrence: str
+    _active: bool
+    _soon: bool
 
     def __init__(self,
         title: str,
         time: MeetingTime,
         description: str = '',
         participants: list[str] = [],
-        labels: list[str] = [],
+        recurrence: str = '',
+        active: bool = True,
+        soon: bool = False
     ) -> None:
         self._title = title
         self._time = time
         self._description = description
         self._participants = participants
-        self._labels = labels
+        self._recurrence = recurrence
+        self._active = active
+        self._soon = soon
     
 
     # INITS
@@ -62,21 +76,25 @@ class Meeting:
     @classmethod
     def from_file(cls, entry_data: dict) -> Meeting:
         return cls(
-            entry_data[ATTRIBUTE_TITLE],
-            MeetingTime(entry_data[ATTRIBUTE_TIME]),
-            entry_data[ATTRIBUTE_DESCRIPTION],
-            entry_data[ATTRIBUTE_PARTICIPANTS],
-            entry_data[ATTRIBUTE_LABELS],
+            title = entry_data[ATTRIBUTE_TITLE],
+            time = MeetingTime(entry_data[ATTRIBUTE_TIME]),
+            description = entry_data[ATTRIBUTE_DESCRIPTION],
+            participants = entry_data[ATTRIBUTE_PARTICIPANTS],
+            recurrence = entry_data[ATTRIBUTE_RECURRENCE],
+            active = entry_data[ATTRIBUTE_ACTIVE],
+            soon = entry_data[ATTRIBUTE_SOON]
         )
     
     @classmethod
     def clone(cls, original: Meeting, time_inc: int) -> Meeting:
         return cls(
-            original.get_title(),
-            MeetingTime(original.get_time().get_timestamp() + time_inc),
-            original.get_description(),
-            original.get_participants(),
-            original.get_labels()
+            title = original.get_title(),
+            time = MeetingTime(original.get_time().get_timestamp() + time_inc),
+            description = original.get_description(),
+            participants = original.get_participants(),
+            recurrence = original.get_recurrence(),
+            active = original.get_active()
+            # Set clone's soon to false.
         )
     
 
@@ -88,26 +106,8 @@ class Meeting:
 
         Sample Usage:
         >>> from frodo_meet_data import SAMPLE_MEETINGS, SAMPLE_IDS_TO_NAMES
-        >>> meeting1 = SAMPLE_MEETINGS[1]
-
-        >>> meeting1.to_discord()
-        '## past, has soon, daily, multiple participants (daily, soon)\\n<t:0:F> (<t:0:R>)'
-
-        >>> meeting1.to_discord(0)
-        '## 1. past, has soon, daily, multiple participants (daily, soon)\\n<t:0:F> (<t:0:R>)'
-
-        >>> meeting1.to_discord(1, True)
-        '## 2. past, has soon, daily, multiple participants (daily, soon)\\n<t:0:F> (<t:0:R>)\\nnotify: will not notify since marked as soon. begin: will begin, be removed, and be cloned tomorrow\\n__Participants__: <@&12345>, <@67890>'
-
-        >>> meeting1.to_discord(2, True, SAMPLE_IDS_TO_NAMES)
-        '## 3. past, has soon, daily, multiple participants (daily, soon)\\n<t:0:F> (<t:0:R>)\\nnotify: will not notify since marked as soon. begin: will begin, be removed, and be cloned tomorrow\\n__Participants__: Execs, Sunny'
-
-        >>> meeting2 = SAMPLE_MEETINGS[4]
-        >>> meeting2.to_discord(3, True, SAMPLE_IDS_TO_NAMES)
-        '## 4. no description\\n<t:20:F> (<t:20:R>)\\n__No participants__ 🧐'
         '''
         time = self.get_time()
-        labels = self.get_labels()
 
         output = '## '
 
@@ -117,8 +117,16 @@ class Meeting:
         # Add title.
         output += self.get_title()
 
-        # If meeting has any labels, add them in parentheses.
-        if labels: output += f' ({', '.join(labels)})'
+        # If meeting has any extra info, add them in parentheses.
+        # This includes recurrence if it has one, if it's inactive, and if it's soon.
+        recurrence = self.get_recurrence()
+        extra_info = ', '.join(
+            ([recurrence] if recurrence else []) +
+            (['inactive'] if not self.get_active() else []) +
+            (['soon'] if self.get_soon() else [])
+        )
+        if extra_info:
+            output += f' ({extra_info})'
         
         # Add absolute and relative time on next line.
         output += f'\n{time.to_discord()} ({time.to_discord(True)})'
@@ -149,83 +157,51 @@ class Meeting:
         return output
     
 
-    def to_display(self, index: int, args: tuple[str]) -> bool:
+    def to_display(self, index: int, filters: tuple[str]) -> bool:
         ''''
-        Given the meeting's index and args,
+        Given the meeting's index and filters,
         returns if the meeting should be displayed.
         Specs are consistent with the show command's docstring.
 
-        Used by show command.
+        Used by show_meetings.
 
         Sample Usage:
         >>> from frodo_meet_data import SAMPLE_MEETINGS
-
-        >>> meeting = SAMPLE_MEETINGS[1]
-
-        >>> meeting.to_display(0, ('all', 'daily', '-1'))
-        False
-
-        >>> meeting.to_display(0, ('-all', '-daily', '1'))
-        True
-
-        >>> meeting.to_display(0, ('-all', 'daily', '-soon', '2'))
-        True
-
-        >>> meeting.to_display(0, ('all', '-soon', '2'))
-        False
-
-        >>> meeting.to_display(0, ('all', 'weekly', '2'))
-        True
-
-        >>> meeting.to_display(0, ('-all', 'weekly', '2'))
-        False
-
-        >>> SAMPLE_MEETINGS[2].to_display(0, ('2',))
-        False
-
-        >>> SAMPLE_MEETINGS[3].to_display(0, ('2',))
-        False
         '''
-        # Refer to normal arguments (nonnegative arguments) as +arguments.
+        # Refer to normal filters (nonnegative filters) as +filters.
 
         index_inc = index + 1
+        recurrence = self.get_recurrence()
 
-        # If index is a -argument, do not display.
-        if f'-{index_inc}' in args: return False
-        
-        # If index is a +argument, display.
-        if f'{index_inc}' in args: return True
-        
-        labels = self.get_labels()
-        has_nlabel = False
+        # Turn all filters lowercase.
+        filters = [filter.lower() for filter in filters]
 
-        # Check labels.
-        for label in labels:
-
-            # If has a +argument label, display
-            if label in args: return True
-            
-            # If has a -argument label, record it.
-            if f'-{label}' in args: has_nlabel = True
+        # If index is a +filter, display.
+        if f'{index_inc}' in filters: return True
         
-        # If has no +argument label but has a -argument label, do not display.
-        if has_nlabel: return False
+        # If index is a -filter, don't display.
+        if f'-{index_inc}' in filters: return False
+
+        # If relevant to any intermediate filters, display.
+        # No need to check active since it's default.
+        if ATTRIBUTE_SOON in filters and self.get_soon() or \
+        recurrence and (recurrence in filters or 'recurring' in filters):
+            return True
+
+        # Otherwise, if relevant to any -intermediate filters, don't display.
+        if f'-{ATTRIBUTE_SOON}' in filters and self.get_soon() or \
+        recurrence and (f'-{recurrence}' in filters or '-recurring' in filters) or \
+        f'-{ATTRIBUTE_ACTIVE}' in filters and self.get_active():
+            return False
         
         # If "all" is an argument, display.
-        if 'all' in args: return True
+        if 'all' in filters: return True
         
         # If "-all" is an argument, do not display.
-        if '-all' in args: return False
+        if '-all' in filters: return False
         
-        # Displayed if it is active (has no canceled or paused label).
-        return not ('canceled' in labels or 'paused' in labels)
-    
-
-    def has_labels(self, *labels: str) -> list[str]:
-        return list(
-            set(self.get_labels()) &
-            set(labels)
-        )
+        # Displayed if it is active.
+        return self.get_active()
     
 
     def is_soon(self, now: MeetingTime, notify_time_secs: int) -> bool:
@@ -250,27 +226,23 @@ class Meeting:
     def get_time(self) -> MeetingTime: return self._time
     def get_description(self) -> str: return self._description
     def get_participants(self) -> list[str]: return self._participants
-    def get_labels(self) -> list[str]: return self._labels
+    def get_recurrence(self) -> str: return self._recurrence
+    def get_active(self) -> bool: return self._active
+    def get_soon(self) -> bool: return self._soon
 
     # SETTERS
     def set_title(self, title: str) -> None: self._title = title
     def set_time(self, time: MeetingTime) -> None: self._time = time
     def set_description(self, description: str) -> None: self._description = description
     def set_participants(self, participants: list[str]) -> None: self._participants = participants
+    def set_recurrence(self, recurrence: str) -> None: self._recurrence = recurrence
+    def set_active(self, active: bool = True) -> None: self._active = active
+    def set_soon(self, soon: bool = False) -> None: self._soon = soon
 
-    def add_label(self, label: str) -> int:
-        if self.has_labels(label): return 0
-
-        self.get_labels().append(label)
-        self.get_labels().sort(key = lambda label: LABELS_ORDER.index(label))
-
-        return 1
-    
-    def remove_label(self, label: str) -> int:
-        if not self.has_labels(label): return 0
-
-        self.get_labels().remove(label)
-        return 1
+    def toggle_active(self) -> bool:
+        new_active = not self.get_active()
+        self._active = new_active
+        return new_active
 
 
 if __name__ == '__main__':

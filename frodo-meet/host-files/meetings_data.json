@@ -1,13 +1,3 @@
 {
-    "meetings": [
-        {
-            "title": "zamb",
-            "time": 2524629660.0,
-            "description": "",
-            "participants": [],
-            "labels": [
-                "yearly"
-            ]
-        }
-    ]
+    "meetings": []
 }

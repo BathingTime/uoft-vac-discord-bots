@@ -2,17 +2,24 @@
 
 Functions to fetch from and write to files data.
 '''
+from pathlib import Path
+
 from common_bot_helper import read_json_file, write_json_file
+
 from meeting import Meeting,\
     ATTRIBUTE_TITLE,\
     ATTRIBUTE_TIME,\
     ATTRIBUTE_DESCRIPTION,\
     ATTRIBUTE_PARTICIPANTS,\
-    ATTRIBUTE_LABELS
+    ATTRIBUTE_RECURRENCE,\
+    ATTRIBUTE_ACTIVE,\
+    ATTRIBUTE_SOON
 from meeting_time import MeetingTime
 
+
+MEETINGS_FILE_KEY = 'meetings'
+
 # Data file path
-from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 DATA_FILE_PATH = BASE_DIR / 'meetings_data.json'
 
@@ -26,20 +33,20 @@ SAMPLE_IDS_TO_NAMES = {
 
 
 def get_meetings(file_data: dict) -> list[Meeting]:
-    '''Given the data from a json file, construct and return a list of Meeting objects.'''
-    return [Meeting.from_file(entry_data) for entry_data in file_data['meetings']]
+    return [Meeting.from_file(entry_data) for entry_data in file_data[MEETINGS_FILE_KEY]]
 
 SAMPLE_MEETINGS = get_meetings(SAMPLE_MEETINGS_DATA) # Sample data
 
 
 def write_meetings(file_path: str, meetings: list[Meeting]) -> None:
-    '''Given a list of Meeting objects, write the data to the json file.'''
-    write_json_file(file_path, {'meetings': [{
+    write_json_file(file_path, {MEETINGS_FILE_KEY: [{
         ATTRIBUTE_TITLE: meeting.get_title(),
         ATTRIBUTE_TIME: meeting.get_time().get_timestamp(),
         ATTRIBUTE_DESCRIPTION: meeting.get_description(),
         ATTRIBUTE_PARTICIPANTS: meeting.get_participants(),
-        ATTRIBUTE_LABELS: meeting.get_labels(),
+        ATTRIBUTE_RECURRENCE: meeting.get_recurrence(),
+        ATTRIBUTE_ACTIVE: meeting.get_active(),
+        ATTRIBUTE_SOON: meeting.get_soon()
     } for meeting in meetings]})
 
 

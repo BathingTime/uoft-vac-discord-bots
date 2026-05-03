@@ -1,4 +1,4 @@
-'''Frodo Meet - Delete Meeting Command
+'''Frodo Meet - Toggle Active Command
 '''
 from discord import Interaction
 
@@ -18,14 +18,14 @@ async def delete_meeting(
     target: str
 ) -> None:
     if not meetings:
-        await interaction.response.send_message('There are no meetings to delete. 🧐')
+        await interaction.response.send_message('There are no meetings to toggle. 🧐')
         return
     
     # If no target arg was given, get meeting select.
     if not target:
         await interaction.response.send_message(
             content = (
-                f'Enter the title or index of the meeting you want to delete:\n'
+                f'Enter the title or index of the meeting whose active status you want to toggle:\n'
                 f'{get_meetings_to_discord(('all',), meetings, None)}'
             ),
             view = MeetingSelectView(
@@ -73,18 +73,29 @@ async def on_confirm(
     data_file_path: str,
     **_
 ) -> None:
-    remove_error = remove_meeting(meetings, target_meeting)
-    if remove_error:
-        await interaction.response.edit_message(
-            content = f'{remove_error}\nNothing to delete.',
+    title = target_meeting.get_title(True)
+
+    if not target_meeting in meetings:
+        interaction.response.edit_message(
+            content = (
+                f'It seems {title} does not exist at the time of confirmation. 🧐\n'
+                'No status to toggle.'
+            ),
             view = None
         )
         return
     
+    new_active = target_meeting.toggle_active()
+    
     write_meetings(data_file_path, meetings)
 
+    content_final = (
+        f'{title} has been activated! 🔊' if new_active else
+        f'{title} has been deactivated! 🔇'
+    )
+
     await interaction.response.edit_message(
-        content = f'{target_meeting.get_title(True)} has been deleted! 💥',
+        content = content_final,
         view = None
     )
 
@@ -93,17 +104,31 @@ async def on_cancel(
     target_meeting: Meeting,
     **_
 ) -> None:
+    title = target_meeting.get_title(True)
+
+    content_final = (
+        f'{title} will remain active! 🔊' if target_meeting.get_active() else
+        f'{title} will remain inactive! 🔇'
+    )
+
     await interaction.response.edit_message(
-        content = f'{target_meeting.get_title(True)} was spared! 😇',
+        content = content_final,
         view = None
     )
 
 
-def build_confirmation_content(ids_to_names: dict[str: str], target_meeting: Meeting) -> str:
+def build_confirmation_content(target_meeting: Meeting) -> str:
+    title = target_meeting.get_title(True)
+
+    if target_meeting.get_active():
+        return (
+            f'{title} is currently __active__.\n'
+            f'Would you like to deactivate {title}? (Will not notify)'
+        )
+    
     return (
-        'Target meeting:\n'
-        f'{target_meeting.to_discord(full = True, ids_to_names = ids_to_names,)}\n\n'
-        'Would you like to delete this meeting?'
+        f'{title} is currently __inactive__.\n'
+        f'Would you like to activate {title}? (Will notify)'
     )
 
 def build_confirmation_view(meetings: list[Meeting], target_meeting: Meeting) -> ConfirmationViewDefault:

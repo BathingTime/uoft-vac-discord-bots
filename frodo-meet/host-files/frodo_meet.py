@@ -8,23 +8,24 @@ Stores and reads meeting data in meetings_data.json.
 
 Driver file.
 '''
-# TODO: edit
+# TODO: Show and toggle-active commands.
+# TODO: Unique title.
+# TODO: Time checking.
+# TODO: Less data fetching.
+# TODO: Update Summary.md.
 
 from discord import Intents, Interaction, Guild, TextChannel
 from discord.ext import commands
 
 from asyncio import sleep
 
-from common_bot_helper import read_json_file, parse_input, chop_output
+from common_bot_helper import read_json_file, chop_output
 
-import frodo_meet_helper
 from frodo_meet_data import get_meetings, write_meetings, DATA_FILE_PATH
 from meeting_time import MeetingTime
 
-import command_create
-import command_delete
-import command_edit
-from auto_functions import notify_meetings, begin_meetings
+import command_show, command_create, command_delete, command_edit
+from frodo_meet_background_tasks import notify_meetings, begin_meetings
 
 
 # CONSTANTS
@@ -71,11 +72,11 @@ async def on_ready():
     description = 'Display recorded meeting plans.'
 )
 async def show_meetings(interaction: Interaction, filters: str = '') -> None:
-    await interaction.response.send_message(frodo_meet_helper.show_meetings(
-        parse_input(filters, ' '),
+    await command_show.show_meetings(
         get_meetings(read_json_file(DATA_FILE_PATH)),
-        get_ids_to_names(interaction.guild)
-    ))
+        get_ids_to_names(interaction.guild),
+        filters
+    )
 
 @command(
     name = 'create-meeting',
@@ -113,7 +114,7 @@ async def edit_meeting(interaction: Interaction, target: str = None) -> None:
     )
 
 
-# AUTO FUNCTION
+# BACKGROUND TASKS
 
 async def auto_notify_n_begin(notify_channel: TextChannel, notice_time_secs: int) -> None:
     '''

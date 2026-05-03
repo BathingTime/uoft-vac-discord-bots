@@ -1,18 +1,23 @@
 '''Frodo Meet - Create Meeting Command
 '''
-from discord import Interaction, SelectOption
-from discord.ui import Modal, TextInput, View, Select
+from discord import Interaction
+from discord.ui import Modal, TextInput
 
-from common_bot_helper import get_response, ConfirmationViewDefault, RESPONSE_TIMEOUT, NULL_SELECT_VALUE
+from common_bot_helper import get_response, ConfirmationViewDefault, NULL_SELECT_VALUE
 
 from frodo_meet_helper import add_meeting
+from frodo_meet_discord_views import RecurrenceSelectView
 from frodo_meet_data import write_meetings, DATA_FILE_PATH
 
-from meeting import Meeting, DAILY_LABEL, WEEKLY_LABEL, YEARLY_LABEL
+from meeting import Meeting
 from meeting_time import MeetingTime
 
 
-async def create_meeting(interaction: Interaction, meetings: list[Meeting], ids_to_names: dict[str: str]) -> None:
+async def create_meeting(
+    interaction: Interaction,
+    meetings: list[Meeting],
+    ids_to_names: dict[str: str]
+) -> None:
     await interaction.response.send_modal(CreateInputModal(
         meetings,
         ids_to_names
@@ -50,7 +55,7 @@ class CreateInputModal(Modal, title = 'Create Meeting'):
             'Or type any non-ping message to skip.'
         )
 
-        participants_message = await get_response(interaction, RESPONSE_TIMEOUT)
+        participants_message = await get_response(interaction)
         
         participants = (
             [f"<@&{role.id}>" for role in participants_message.role_mentions] +
@@ -65,77 +70,51 @@ class CreateInputModal(Modal, title = 'Create Meeting'):
             participants,
         )
 
-        # STEP 3: Get recurrence option.
+        # STEP 3: Get recurrence, if any.
         await interaction.followup.send(
-            'Would you like to make this a recurring meeting?\n'
-            'For a one-time meeting, select __Normal (one-time)__.',
-            view = RecurrenceSelectView(self._meetings, self._ids_to_names, new_meeting)
+            content = (
+                'Would you like to make this a recurring meeting?\n'
+                'For a one-time meeting, select *Normal (one-time)*.'
+            ),
+            view = RecurrenceSelectView(
+                on_select = on_recurrence_select,
+                meetings = self._meetings,
+                ids_to_names = self._ids_to_names,
+                new_meeting = new_meeting
+            )
         )
 
 
 # RECURRENCE SELECT
 
-class RecurrenceSelectView(View):
-    def __init__(self,
-        meetings: list[Meeting],
-        ids_to_names: dict[str: str],
-        new_meeting: Meeting
-    ) -> None:
-        super().__init__(timeout = RESPONSE_TIMEOUT)
-        self.add_item(RecurrenceSelect(meetings, ids_to_names, new_meeting))
+async def on_recurrence_select(
+    interaction: Interaction,
+    recurrence: str,
+    meetings: list[Meeting],
+    ids_to_names: dict[str: str],
+    new_meeting: Meeting,
+    **_
+) -> None:
+    # If a recurrence was selected, set it.
+    if recurrence != NULL_SELECT_VALUE:
+        new_meeting.set_recurrence(recurrence)
 
-class RecurrenceSelect(Select):
-    _meetings: list[Meeting]
-    _ids_to_names: dict[str: str]
-    _new_meeting: Meeting
-
-    def __init__(self,
-        meetings: list[Meeting],
-        ids_to_names: dict[str: str],
-        new_meeting: Meeting
-    ) -> None:
-        self._meetings = meetings
-        self._ids_to_names = ids_to_names
-        self._new_meeting = new_meeting
-
-        super().__init__(
-            placeholder = 'Select recurrence option…',
-            options = [
-                SelectOption(label = 'Normal (one-time)', value = NULL_SELECT_VALUE),
-                SelectOption(label = 'Daily', value = DAILY_LABEL),
-                SelectOption(label = 'Weekly', value = WEEKLY_LABEL),
-                SelectOption(label = 'Yearly', value = YEARLY_LABEL),
-            ]
+    # STEP 4: Confirmation.
+    await interaction.response.edit_message(
+        content = (
+            'New meeting:\n'
+            f'{new_meeting.to_discord(full = True, ids_to_names = ids_to_names,)}\n\n'
+            'Would you like to create this meeting?'
+        ),
+        view = ConfirmationViewDefault(
+            on_confirm = on_confirm,
+            on_cancel = on_cancel,
+            meetings = meetings,
+            ids_to_names = ids_to_names,
+            new_meeting = new_meeting,
+            data_file_path = DATA_FILE_PATH
         )
-    
-    async def callback(self, interaction: Interaction) -> None:
-        recurring_label = self.values[0]
-
-        meetings = self._meetings
-        ids_to_names = self._ids_to_names
-        new_meeting = self._new_meeting
-
-        # If a recurring label was selected, add it.
-        if recurring_label != NULL_SELECT_VALUE:
-            new_meeting.add_label(recurring_label)
-
-        # STEP 4: Confirmation.
-        await interaction.response.edit_message(
-            content = (
-                'New meeting:\n'
-                f'{new_meeting.to_discord(full = True, ids_to_names = ids_to_names,)}\n\n'
-                'Would you like to create this meeting?'
-            ),
-            view = ConfirmationViewDefault(
-                on_confirm = on_confirm,
-                on_cancel = on_cancel,
-                timeout = RESPONSE_TIMEOUT,
-                meetings = meetings,
-                ids_to_names = ids_to_names,
-                new_meeting = new_meeting,
-                data_file_path = DATA_FILE_PATH
-            )
-        )
+    )
 
 
 # CONFIRMATION
