@@ -13,6 +13,7 @@ RESPONSE_TIMEOUT = 60 # Bots will stop waiting for responses after this number o
 WORD_LIMIT = 2000 # Word limit for Discord messages; might vary, but this is a safe value.
 NULL_SELECT_VALUE = '0' # Discord select values must be nonempty strings, so use this for null option (unless it is used for a legitemate option).
 MAX_SELECTS = 25 # Max number of select options for one message (supposedly).
+DIVIDER_STR = '——————————' # To separate prints of background tasks from those of commands, if you wish.
 
 
 # FILE FUNCTIONS
@@ -64,6 +65,7 @@ class ConfirmationViewDefault(View):
         timeout: float = RESPONSE_TIMEOUT,
         **data: dict
     ):
+        print('In confirmation view, awaiting confirmation…')
         super().__init__(timeout = timeout)
 
         self._on_confirm = on_confirm
@@ -72,10 +74,12 @@ class ConfirmationViewDefault(View):
     
     @button(label='Yes', style=ButtonStyle.green)
     async def confirm(self, interaction: Interaction, _: Button):
+        print('Confirmed, executing on confirm process.')
         await self._on_confirm(interaction, **self._data)
     
     @button(label='No', style=ButtonStyle.red)
     async def cancel(self, interaction: Interaction, _: Button):
+        print('Cancelled, executing on cancel process.')
         await self._on_cancel(interaction, **self._data)
 
 

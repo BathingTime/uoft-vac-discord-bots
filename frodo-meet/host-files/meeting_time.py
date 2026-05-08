@@ -12,8 +12,8 @@ TORONTO_TIMEZONE = ZoneInfo("America/Toronto")
 
 class MeetingTime:
     '''
-    Stores all relevant args for a meeting time,
-    as well as its UNIX timestamp equivalent.
+    Contains the UNIX timestamp of the time.
+    (seconds since the epoch)
 
     Default init: timestamp
     '''
@@ -23,7 +23,8 @@ class MeetingTime:
         self._timestamp = timestamp
     
     @classmethod
-    def get_now(cls) -> MeetingTime: return cls(datetime.now(TORONTO_TIMEZONE))
+    def get_now(cls) -> MeetingTime:
+        return cls(datetime.now(TORONTO_TIMEZONE).timestamp())
 
 
     # INSTANCE METHODS
@@ -47,8 +48,10 @@ class MeetingTime:
         
         return NotImplemented
 
+
     def __sub__(self, other: MeetingTime | int) -> MeetingTime:
         return self + (-other)
+
 
     def __neg__(self) -> MeetingTime:
         return MeetingTime(-self.get_timestamp())
@@ -85,6 +88,7 @@ class MeetingTime:
                 month = get_month_int(args[1])
                 if not month: raise ValueError(INVALID_MON)
 
+                if not 1 <= year <= 9999: raise ValueError(INVALID_Y)
                 if not 0 <= hour < 24: raise ValueError(INVALID_H)
                 if not 0 <= minute < 60: raise ValueError(INVALID_MIN)
 
@@ -124,6 +128,7 @@ class MeetingTime:
                 )
                 except ValueError: raise ValueError(INVALID_DT)
 
+                # If passed, use same time next year.
                 if dt <= now: dt = datetime(
                     year + 1, month, day, hour, minute,
                     tzinfo = TORONTO_TIMEZONE
@@ -145,6 +150,8 @@ class MeetingTime:
                     year = int(args[0])
                     day = int(args[2])
                 except ValueError: raise ValueError(INVALID_NUM)
+
+                if not 1 <= year <= 9999: raise ValueError(INVALID_Y)
 
                 month = get_month_int(args[1])
                 if not month: raise ValueError(INVALID_MON)
@@ -172,7 +179,7 @@ class MeetingTime:
                 if not 0 <= hour < 24: raise ValueError(INVALID_H)
                 if not 0 <= minute < 60: raise ValueError(INVALID_MIN)
 
-                weekday = WEEKDAY_MAP.get(args[0])
+                weekday = get_weekday_int(args[0])
                 if weekday is None: raise ValueError(INVALID_W)
 
                 return cls(
@@ -201,10 +208,11 @@ class MeetingTime:
                 try: dt = datetime(
                     year, month, day,
                     DEFAULT_HOUR, DEFAULT_MINUTE,
-                    tzinfo=TORONTO_TIMEZONE
+                    tzinfo = TORONTO_TIMEZONE
                 )
                 except ValueError: raise ValueError(INVALID_DT)
 
+                # If passed, use same time next year.
                 if dt <= now: dt = datetime(
                     year + 1, month, day,
                     DEFAULT_HOUR, DEFAULT_MINUTE,
@@ -232,7 +240,8 @@ class MeetingTime:
                     microsecond=0
                 )
 
-                if dt <= now: dt += timedelta(days=1)
+                # If passed, use same time tomorrow.
+                if dt <= now: dt += timedelta(days = 1)
 
                 return cls(dt.timestamp())
 
@@ -242,7 +251,7 @@ class MeetingTime:
         # 1 arg: W
         if num_args == 1:
             try:
-                weekday = WEEKDAY_MAP.get(args[0])
+                weekday = get_weekday_int(args[0])
                 if weekday is None: raise ValueError(INVALID_W)
 
                 return cls(
@@ -290,13 +299,14 @@ DEFAULT_MINUTE = 0
 
 TIME_BREAKPOINTS_RE = '[ ,:-]'
 
-INVALID_NUM = 'Expected numeric arguments(s) not numeric.'
-INVALID_MON = 'Invalid month.'
-INVALID_H = 'Hour must be 0–24, not including 24.'
-INVALID_MIN = 'Minute must be 0–60, not including 60.'
-INVALID_W = 'Invalid weekday.'
-INVALID_DT = 'Call to datetime failed.'
-INVALID_PASSED = 'Intended time has already passed.'
+INVALID_NUM = 'expected numeric arguments(s) not numeric.'
+INVALID_Y = 'year must be 1–9999.'
+INVALID_MON = 'month must be 1–12, full month name, or first 3 letters.'
+INVALID_H = 'hour must be 0–23.'
+INVALID_MIN = 'minute must be 0–59.'
+INVALID_W = 'weekday must be 1–7, full weekday name, or the abbreviation.'
+INVALID_DT = 'intended date is invalid (e.g. invalid day for the month or leap year issue).'
+INVALID_PASSED = 'intended time has already passed.'
 
 
 def get_month_int(arg: str) -> int:
@@ -308,15 +318,28 @@ def get_month_int(arg: str) -> int:
     return MONTH_MAP.get(arg)
     # If invalid, will return None.
 
+def get_weekday_int(arg: str) -> int:
+    if arg.isdigit():
+        arg = int(arg)
+
+        return arg - 1 if 1 <= arg <= 7 else None
+    
+    return WEEKDAY_MAP.get(arg)
+    # If invalid, will return None.
+
 def next_weekday(
     now: datetime,
     target_weekday: int,
     hour: int,
     minute: int
 ) -> datetime:
+    # Get number of days until next target weekday from now.
     days_ahead = (target_weekday - now.weekday()) % 7
 
+    # If 0, then the target weekday is the same weekday as now.
     if days_ahead == 0:
+
+        # Get the target time today.
         candidate = now.replace(
             hour = hour,
             minute = minute,
@@ -324,20 +347,22 @@ def next_weekday(
             microsecond = 0
         )
 
-        if candidate > now:
-            return candidate
+        # If target time is later in the day compared to now, use it.
+        if candidate > now: return candidate
         
+        # Otherwise, it is passed, so use same time next week (7 days later).
         days_ahead = 7
     
-    return (now + timedelta(days=days_ahead)).replace(
+    # Use same time with the computed number of days later.
+    return (now + timedelta(days = days_ahead)).replace(
         hour = hour,
         minute = minute,
         second = 0,
         microsecond = 0
     )
 
-def add_err_spec(err_specs: list[str], format: str, err: str) -> None:
-    err_specs.append(f'**{format}** format failed: __{err}__')
+def add_err_spec(err_specs: list[str], format: str, e: Exception) -> None:
+    err_specs.append(f'**{format}** format failed: __{e}__')
 
 def build_err_message(err_specs: list[str]) -> str:
     return (

@@ -1,5 +1,107 @@
 {
+    "_": "The soon attribute is not relevant to past meetings in practice.",
     "meetings": [
-        
+        {
+            "title": "past, has participants",
+            "time": 0,
+            "description": "Will begin.",
+            "participants": [
+                "<@&12345>",
+                "<@67890>"
+            ],
+            "recurrence": "",
+            "active": true,
+            "soon": false
+        },
+        {
+            "title": "past, recurring",
+            "time": 0,
+            "description": "Will begin and clone. Will display recurrence.",
+            "participants": [],
+            "recurrence": "daily",
+            "active": true,
+            "soon": false
+        },
+        {
+            "title": "past, inactive, recurring",
+            "time": 0,
+            "description": "Will not begin, but will clone. Will display recurrence and inactive.",
+            "participants": [],
+            "recurrence": "weekly",
+            "active": false,
+            "soon": false
+        },
+        {
+            "title": "soon, not notified",
+            "time": 10,
+            "description": "Will notify and marked as soon, but will not begin.",
+            "participants": [],
+            "recurrence": "",
+            "active": true,
+            "soon": false
+        },
+        {
+            "title": "soon, notified",
+            "time": 20,
+            "description": "Will not notify. Will display soon.",
+            "participants": [],
+            "recurrence": "",
+            "active": true,
+            "soon": true
+        },
+        {
+            "title": "soon, notified, recurring",
+            "time": 30,
+            "description": "Will display recurrence and soon.",
+            "participants": [],
+            "recurrence": "yearly",
+            "active": true,
+            "soon": true
+        },
+        {
+            "title": "soon, inactive",
+            "time": 40,
+            "description": "Will not notify but marked as soon. Will display inactive.",
+            "participants": [],
+            "recurrence": "",
+            "active": false,
+            "soon": false
+        },
+        {
+            "title": "soon, notified, inactive",
+            "time": 50,
+            "description": "Will display inactive and soon.",
+            "participants": [],
+            "recurrence": "",
+            "active": false,
+            "soon": true
+        },
+        {
+            "title": "soon, notified, recurring, inactive",
+            "time": 60,
+            "description": "Will display all 3 of recurring, inactive, and soon.",
+            "participants": [],
+            "recurrence": "daily",
+            "active": false,
+            "soon": true
+        },
+        {
+            "title": "not soon",
+            "time": 100,
+            "description": "Will not notify. Soon status remains false.",
+            "participants": [],
+            "recurrence": "",
+            "active": true,
+            "soon": false
+        },
+        {
+            "title": "no description, no participants",
+            "time": 100,
+            "description": "",
+            "participants": [],
+            "recurrence": "",
+            "active": true,
+            "soon": false
+        }
     ]
 }

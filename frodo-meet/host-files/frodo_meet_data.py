@@ -1,6 +1,4 @@
 '''Frodo Meet - Data
-
-Functions to fetch from and write to files data.
 '''
 from pathlib import Path
 
@@ -14,32 +12,24 @@ from meeting import Meeting,\
     ATTRIBUTE_RECURRENCE,\
     ATTRIBUTE_ACTIVE,\
     ATTRIBUTE_SOON
-from meeting_time import MeetingTime
 
 
+DATA_FILE_PATH = Path(__file__).resolve().parent / 'meetings_data.json'
 MEETINGS_FILE_KEY = 'meetings'
 
-# Data file path
-BASE_DIR = Path(__file__).resolve().parent
-DATA_FILE_PATH = BASE_DIR / 'meetings_data.json'
-
-# Sample data
-SAMPLE_MEETINGS_DATA = read_json_file('frodo-meet/meetings_data_sample.json')
-EPOCH = MeetingTime(0)
-SAMPLE_IDS_TO_NAMES = {
-    '12345': 'Execs',
-    '67890': 'Sunny'
-}
+_meetings: list[Meeting] = [] # Persistent meetings list.
 
 
-def get_meetings(file_data: dict) -> list[Meeting]:
-    return [Meeting.from_file(entry_data) for entry_data in file_data[MEETINGS_FILE_KEY]]
+# DATA ACCESS FUNCTIONS
 
-SAMPLE_MEETINGS = get_meetings(SAMPLE_MEETINGS_DATA) # Sample data
+def load_meetings() -> None:
+    global _meetings
+    _meetings = read_meetings_from_data( read_json_file(DATA_FILE_PATH))
 
+def get_meetings() -> list[Meeting]: return _meetings
 
-def write_meetings(file_path: str, meetings: list[Meeting]) -> None:
-    write_json_file(file_path, {MEETINGS_FILE_KEY: [{
+def save_meetings() -> None:
+    write_json_file(DATA_FILE_PATH, {MEETINGS_FILE_KEY: [{
         ATTRIBUTE_TITLE: meeting.get_title(),
         ATTRIBUTE_TIME: meeting.get_time().get_timestamp(),
         ATTRIBUTE_DESCRIPTION: meeting.get_description(),
@@ -47,7 +37,16 @@ def write_meetings(file_path: str, meetings: list[Meeting]) -> None:
         ATTRIBUTE_RECURRENCE: meeting.get_recurrence(),
         ATTRIBUTE_ACTIVE: meeting.get_active(),
         ATTRIBUTE_SOON: meeting.get_soon()
-    } for meeting in meetings]})
+    } for meeting in _meetings]})
+
+
+# Helper function; also used for sample data.
+def read_meetings_from_data(file_data: dict) -> list[Meeting]:
+    return [
+        Meeting.from_file(entry_data)
+        for entry_data in
+        file_data[MEETINGS_FILE_KEY]
+    ]
 
 
 if __name__ == '__main__':

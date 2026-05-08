@@ -38,6 +38,8 @@ RECURRENCE_MAPPING = { # Map recurring labels to corresponding number of seconds
     }
 }
 
+NO_PARTICIPANTS_MESSAGE = '\n__No participants__ 🧐'
+
 
 class Meeting:
     '''
@@ -102,10 +104,55 @@ class Meeting:
 
     def to_discord(self, index: int = None, full: bool = False, ids_to_names: dict[str: str] = None) -> str:
         '''
-        Return a string of the meeting's data to be printed to Discord.
-
+        Return a string of the meeting's data to be sent in Discord.
+        
         Sample Usage:
-        >>> from frodo_meet_data import SAMPLE_MEETINGS, SAMPLE_IDS_TO_NAMES
+        >>> from frodo_meet_sample_data import SAMPLE_MEETINGS, SAMPLE_IDS_TO_NAMES
+
+        >>> meeting1 = SAMPLE_MEETINGS[0]
+        >>> meeting1.to_discord()
+        '## past, has participants\\n<t:0:F> (<t:0:R>)'
+
+        # Index:
+        >>> '## 1.' in meeting1.to_discord(0)
+        True
+
+        # Full adds description and participants.
+        >>> result_full = meeting1.to_discord(0, True)
+        >>> 'Will begin.' in result_full
+        True
+        >>> '__Participants__: <@&12345>, <@67890>' in result_full
+        True
+
+        # Ids to names replaces pings with names.
+        >>> result_ids = meeting1.to_discord(0, True, SAMPLE_IDS_TO_NAMES)
+        >>> 'Execs, Sunny' in result_ids
+        True
+        >>> '<@&12345>' in result_ids or '<@67890>' in result_ids
+        False
+
+        # Extra info (all cases):
+        >>> '(daily)' in SAMPLE_MEETINGS[1].to_discord()
+        True
+        >>> '(weekly, inactive)' SAMPLE_MEETINGS[2].to_discord()
+        True
+        >>> '(soon)' in SAMPLE_MEETINGS[4].to_discord()
+        True
+        >>> '(yearly, zoon)' in SAMPLE_MEETINGS[5].to_discord()
+        True
+        >>> '(inactive)' in SAMPLE_MEETINGS[6].to_discord()
+        True
+        >>> '(inactive, soon)' in SAMPLE_MEETINGS[7].to_discord()
+        True
+        >>> '(daily, inactive, soon)' in SAMPLE_MEETINGS[8].to_discord()
+        True
+
+        # No participants:
+        >>> meeting_no_participants = SAMPLE_MEETINGS[10]
+        >>> meeting_no_participants.to_discord(full = True) == \
+                meeting_no_participants.to_discord(full = True, ids_to_names = SAMPLE_IDS_TO_NAMES) == \
+                NO_PARTICIPANTS_MESSAGE
+        True
         '''
         time = self.get_time()
 
@@ -152,26 +199,63 @@ class Meeting:
                 def repl(match): return ids_to_names.get(match.group(1), match.group(0))
                 output = sub(r'<@&?(\d+)>', repl, output)
         
-        else: output += f'\n__No participants__ 🧐'
+        else: output += NO_PARTICIPANTS_MESSAGE
         
         return output
-    
 
     def to_display(self, index: int, filters: tuple[str]) -> bool:
         ''''
         Given the meeting's index and filters,
         returns if the meeting should be displayed.
         Specs are consistent with the show command's docstring.
-
-        Used by show_meetings.
-
+        
         Sample Usage:
-        >>> from frodo_meet_data import SAMPLE_MEETINGS
+        >>> from frodo_meet_sample_data import SAMPLE_MEETINGS
+
+        >>> meeting_all_filters = SAMPLE_MEETINGS[5]
+        >>> meeting_all_filters.to_display(0, ())
+        True
+        >>> meeting_all_filters.to_display(0, ('-all',))
+        False
+
+        # Intermediate filters have priority over all.
+        >>> meeting_all_filters.to_display(0, ('-all', 'recurring'))
+        True
+        >>> meeting_all_filters.to_display(0, ('-all', 'yearly'))
+        True
+        >>> meeting_all_filters.to_display(0, ('-all', 'soon'))
+        True
+        >>> meeting_all_filters.to_display(0, ('all', '-recurring'))
+        False
+        >>> meeting_all_filters.to_display(0, ('all', '-yearly'))
+        False
+        >>> meeting_all_filters.to_display(0, ('all', '-soon'))
+        False
+        >>> meeting_all_filters.to_display(0, ('all', '-active'))
+        False
+
+        # Index has priority over intermediate filters and all.
+        >>> meeting_all_filters.to_display(0, ('-all', '-recurring', '1'))
+        True
+        >>> meeting_all_filters.to_display(0, ('all', 'recurring', '-1'))
+        False
+
+        # Filters irrelevant to the meeting have no effect.
+        >>> meeting_all_filters.to_display(0, ('-all', 'daily'))
+        False
+        >>> meeting_all_filters.to_display(0, ('-all', '-recurring', '2'))
+        False
+
+        # Inactive meetings are not displayed by default.
+        >>> meeting_inactive = SAMPLE_MEETINGS[2]
+        >>> meeting_inactive.to_display(0, ())
+        False
+        >>> meeting_inactive.to_display(0, ('all',))
+        True
         '''
         # Refer to normal filters (nonnegative filters) as +filters.
 
         index_inc = index + 1
-        recurrence = self.get_recurrence()
 
         # Turn all filters lowercase.
         filters = [filter.lower() for filter in filters]
@@ -182,8 +266,10 @@ class Meeting:
         # If index is a -filter, don't display.
         if f'-{index_inc}' in filters: return False
 
+        recurrence = self.get_recurrence()
+
         # If relevant to any intermediate filters, display.
-        # No need to check active since it's default.
+        # Don't check active since it's default.
         if ATTRIBUTE_SOON in filters and self.get_soon() or \
         recurrence and (recurrence in filters or 'recurring' in filters):
             return True
@@ -229,6 +315,7 @@ class Meeting:
     def get_recurrence(self) -> str: return self._recurrence
     def get_active(self) -> bool: return self._active
     def get_soon(self) -> bool: return self._soon
+
 
     # SETTERS
     def set_title(self, title: str) -> None: self._title = title

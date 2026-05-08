@@ -14,13 +14,7 @@ def notify_meetings(meetings: list[Meeting], now: MeetingTime, notice_time_secs:
     Return None if there are no meetings to notify.
 
     Preconditions:
-    - meetings are sorted by timestamp.
-
-    Sample Usage:
-    >>> from copy import deepcopy
-    >>> from frodo_meet_data import SAMPLE_MEETINGS, EPOCH
-
-    >>> meetings = deepcopy(SAMPLE_MEETINGS)
+    - meetings are sorted by time.
     '''
     output_list = []
 
@@ -64,12 +58,6 @@ def begin_meetings(meetings: list[Meeting], now: MeetingTime) -> str:
     Return a string of begin messages for all active meetings that have begun.
     For such meetings, remove regular meetings for the meetings list, and
     clone recurring meetings with the appropriate time increment.
-
-    Sample Usage:
-    >>> from copy import deepcopy
-    >>> from frodo_meet_data import SAMPLE_MEETINGS, EPOCH
-
-    >>> meetings = deepcopy(SAMPLE_MEETINGS)
     '''
     output = ''
 

@@ -1,5 +1,7 @@
 '''Frodo Meet - Helper
 '''
+from discord import Message
+
 from meeting import Meeting
 
 
@@ -23,9 +25,6 @@ def get_meetings_to_discord(
 
     Priority: index > intermediate filters > all
     If a meeting is relevant to both a +filter and a -filter of the same priority, it WILL be displayed.
-
-    Sample Usage:
-    >>> from frodo_meet_data import SAMPLE_MEETINGS, SAMPLE_IDS_TO_NAMES
     '''
     # print(meetings)
 
@@ -59,14 +58,50 @@ def find_meeting(meetings: list[Meeting], target: str) -> Meeting | str:
     - Find the first meeting with the same title.
     
     Sample Usage:
-    >>> from frodo_meet_data import SAMPLE_MEETINGS
+    >>> from frodo_meet_sample_data import SAMPLE_MEETINGS
+
+    >>> meeting1 = SAMPLE_MEETINGS[0]
+    >>> meeting11 = SAMPLE_MEETINGS[10]
+
+    # Find by index:
+    >>> find_meeting(SAMPLE_MEETINGS, '1') == meeting1
+    True
+
+    >>> find_meeting(SAMPLE_MEETINGS, ' 11     ') == meeting11
+    True
+
+    # Invalid index:
+    >>> index_err = build_find_meeting_index_err(len(SAMPLE_MEETINGS))
+
+    >>> find_meeting(SAMPLE_MEETINGS, '0') == index_err
+    True
+
+    >>> find_meeting(SAMPLE_MEETINGS, '12') == index_err
+    True
+
+    # Find by title:
+    >>> find_meeting(SAMPLE_MEETINGS, 'past, has participants') == meeting1
+    True
+
+    >>> find_meeting(SAMPLE_MEETINGS, '   no description, no participants  ') == meeting11
+    True
+
+    # Invalid title:
+    >>> invalid_title = 'past has participants' # Missing a comma.
+
+    >>> find_meeting(SAMPLE_MEETINGS, invalid_title) == \
+            build_find_meeting_title_err(invalid_title)
+    True
     '''
+    # Strip target string.
+    target = target.strip()
+
     # If target is an index:
     if target.isdigit():
         index = int(target) - 1
 
         if not 0 <= index < len(meetings):
-            return f'Given index is invalid; must be **1–{len(meetings)}**. 🧐'
+            return build_find_meeting_index_err(len(meetings))
         
         return meetings[index]
     
@@ -77,7 +112,13 @@ def find_meeting(meetings: list[Meeting], target: str) -> Meeting | str:
         if curr_meeting.get_title().strip().lower() == target.strip().lower():
             return curr_meeting
     
-    return 'There is no meeting with that title. 🧐'
+    return build_find_meeting_title_err(target)
+
+def build_find_meeting_index_err(num_meetings: int) -> str:
+    return f'Given index is invalid; must be **1–{num_meetings}**. 🧐'
+
+def build_find_meeting_title_err(title: str) -> str:
+    return f'No meeting has the title {title}. 🧐'
 
 
 def add_meeting(meetings: list[Meeting], new_meeting: Meeting) -> int:
@@ -85,11 +126,9 @@ def add_meeting(meetings: list[Meeting], new_meeting: Meeting) -> int:
     Add the new meeting to the meetings list, and sort it.
     Return the new meeting's index in the sorted list.
 
-    Sample Usage:
-    >>> from copy import deepcopy
-    >>> from frodo_meet_data import SAMPLE_MEETINGS
-
-    >>> meetings = deepcopy(SAMPLE_MEETINGS)
+    Preconditions:
+    - Meetings are sorted by time.
+    - New meeting's title is not taken.
     '''
     meetings.append(new_meeting)
     meetings.sort()
@@ -99,7 +138,7 @@ def add_meeting(meetings: list[Meeting], new_meeting: Meeting) -> int:
 
 def remove_meeting(meetings: list[Meeting], target_meeting: Meeting) -> str:
     '''
-    Given a meeting, remove it from the meetings list.
+    Remove a meeting from the meetings list.
     If the meeting is not in the meetings list, return an error message.
     This is possible, for example, if the meeting began while in the process of removing it.
     Otherwise, return None.
@@ -108,6 +147,26 @@ def remove_meeting(meetings: list[Meeting], target_meeting: Meeting) -> str:
         return f'It seems {target_meeting.get_title(True)} does not exist at the time of confirmation. 🧐'
     
     meetings.remove(target_meeting)
+
+
+def is_title_taken(meetings: list[Meeting], title: str) -> str:
+    '''
+    If the given title is taken by a meeting, return an error message.
+    Otherwise, return None.
+    '''
+    for meeting in meetings:
+        if title == meeting.get_title():
+            return f'A meeting already has the title **{title}**. 🧐'
+
+
+def parse_participants(message: Message) -> list[str]:
+    '''
+    Return a list of all pings in a message, omitting all other non-ping parts.
+    '''
+    return (
+        [f"<@&{role.id}>" for role in message.role_mentions] +
+        [f"<@{user.id}>" for user in message.mentions]
+    )
 
 
 if __name__ == '__main__':

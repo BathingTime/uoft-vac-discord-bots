@@ -2,23 +2,33 @@
 Author: Sunny Lin
 
 ---
-### Meeting Entries
-Refer to the [sample](meeting_entries_sample.json) file for an example of what entries would look like.
+### Meeting Data
+Data for a meeting is represented by a [`Meeting`](host-files/meeting.py) object.
+\
+Data for all meetings are stored in [meeting_entries.json](host-files/meeting_entries.json).
+\
+Refer to the [sample](meeting_entries_sample.json) file for what this data might look like.
 
-Data for meeting plans will be stored in a json file ([meeting_entries.json](host_files/meeting_entries.json)) as entries.
-
-Each entry consists of 5 fields:
-1. **title** (`str`)
-2. **time**: unix timestamp (`float`)
-3. **description** (`str`)
+Each meeting object contains 7 attributes:
+1. **Title** (`str`)
+    - Titles must be **unique** across meetings in the file.
+2. **Time**: time the meeting is set to begin ([`MeetingTime`](host-files/meeting_time.py) object)
+    - Contains the **UNIX timestamp** and useful functions.
+    - Times of existing meetings must be **in the future** (an existing meeting plan for a time in the past doesn't make sense).
+3. **Description** (`str`)
     - Can store any single **formatted** Discord message.
-4. **participants**: list of pings (`list[str]`)
-    - For **members**, use `<u>…` where … is the <u>user ID</u>.
-    - For **roles**, use `<r>…`, where … is the <u>role ID</u>.
+4. **Participants**: list of pings (`list[str]`)
+    - **Role** pings are represented by `<@&…>`, where … is the <u>role ID</u>.
+    - **Member** pings are represented by `<@…>`, where … is the <u>user ID</u>.
     - `everyone` and `here` will work but seem redundant for our purposes (for all execs, ping the exec role).
-    - The `<u>` and `<r>` are indicators for replacing IDs with names in the driver file (since this uses the Discord API).
-5. **labels**: list of labels (`list[str]`)
+5. **Recurrence** (`str`)
+    - `'daily', 'weekly', 'yearly',` or empty string for normal (one-time).
+    - A meeting is considered "recurring" if its recurrence is a nonempty string.
+6. **Active**: whether to notify (`bool`)
+7. **Soon**: whether the meeting has been observed to begin within the notify time. (`bool`)
+    - Not directly accessible by the user; only used to mark a meeting as beginning soon.
 
 \
-Entries are stored in **chronological order based on date**.
-- i.e. The first entry in the file should be the closest upcoming one.
+Meetings are stored in **chronological order based on date**.
+\
+i.e. The first entry in the file should be the closest upcoming one.

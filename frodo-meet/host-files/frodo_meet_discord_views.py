@@ -22,6 +22,7 @@ class MeetingSelectView(View):
         timeout: float = RESPONSE_TIMEOUT,
         **data: dict
     ) -> None:
+        print('In meeting select view, awaiting target meeting select…')
         super().__init__(timeout = timeout)
 
         self.add_item(MeetingSelect(
@@ -58,15 +59,18 @@ class MeetingSelect(Select):
         )
 
     async def callback(self, interaction: Interaction):
+        print('Meeting selected, finding target meeting.')
         meetings = self._meetings
 
         # Get target meeting.
         target_meeting = find_meeting(meetings, self.values[0])
         if isinstance(target_meeting, str):
             await interaction.followup.send(target_meeting)
+            print('Find meeting error, terminating.')
             return
 
         # Execute followup process.
+        print('Got target meeting, executing followup process for meeting select.')
         await self._on_select(
             interaction,
             self._meetings,
@@ -82,6 +86,7 @@ class RecurrenceSelectView(View):
         timeout: float = RESPONSE_TIMEOUT,
         **data: dict
     ) -> None:
+        print('In recurrence select view, awaiting recurrence select…')
         super().__init__(timeout = timeout)
 
         self.add_item(RecurrenceSelect(on_select, data))
@@ -108,9 +113,11 @@ class RecurrenceSelect(Select):
         )
     
     async def callback(self, interaction: Interaction) -> None:
+        print('Recurrence selected.')
         recurrence = self.values[0]
 
         # Execute followup process.
+        print('Executing followup process for recurrence select.')
         await self._on_select(
             interaction,
             recurrence,

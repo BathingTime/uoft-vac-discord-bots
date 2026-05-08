@@ -5,9 +5,9 @@ from discord.ui import Modal, TextInput
 
 from common_bot_helper import get_response, ConfirmationViewDefault, NULL_SELECT_VALUE
 
-from frodo_meet_helper import add_meeting
+from frodo_meet_helper import add_meeting, is_title_taken, parse_participants
 from frodo_meet_discord_views import RecurrenceSelectView
-from frodo_meet_data import write_meetings, DATA_FILE_PATH
+from frodo_meet_data import save_meetings
 
 from meeting import Meeting
 from meeting_time import MeetingTime
@@ -18,6 +18,9 @@ async def create_meeting(
     meetings: list[Meeting],
     ids_to_names: dict[str: str]
 ) -> None:
+    print('Create meeting command start.')
+
+    print('Sending initial modal.')
     await interaction.response.send_modal(CreateInputModal(
         meetings,
         ids_to_names
@@ -31,36 +34,46 @@ class CreateInputModal(Modal, title = 'Create Meeting'):
     _ids_to_names: dict[str: str]
 
     # STEP 1: Get title, time, and description.
-    _title_input = TextInput(label='Title')
-    _time_input = TextInput(label='Time')
-    _description_input = TextInput(label='Description', required=False)
+    _title_input = TextInput(label = 'Title')
+    _time_input = TextInput(label = 'Time')
+    _description_input = TextInput(label = 'Description', required = False)
 
     def __init__(self, meetings: list[Meeting], ids_to_names: dict[str: str]) -> None:
+        print('In initial modal, awaiting inputs…')
         super().__init__()
         self._meetings = meetings
         self._ids_to_names = ids_to_names
 
     async def on_submit(self, interaction: Interaction) -> None:
+        print('Got initial inputs.')
 
-        # If time input was invalid, print error message.
+        meetings = self._meetings
+        title = self._title_input.value
+
+        # If title is taken, send error message and terminate.
+        taken_err = is_title_taken(meetings, title)
+        if taken_err:
+            await interaction.response.send_message(taken_err)
+            print('Title taken error, terminating.')
+            return
+
+        # If time input was invalid, send error message and terminate.
         time = MeetingTime.from_input(self._time_input.value)
         if isinstance(time, str):
             await interaction.response.send_message(time)
+            print('Time error, terminating.')
             return
         
         # STEP 2: Get participants.
+        print('Awaiting participants input…')
         await interaction.response.send_message(
             'Enter **pings** for all participants you want to add for this meeting, separated by spaces. (roles or users)\n'
             'E.g. @Lead @Frodo Meet\n'
             'Or type any non-ping message to skip.'
         )
-
         participants_message = await get_response(interaction)
-        
-        participants = (
-            [f"<@&{role.id}>" for role in participants_message.role_mentions] +
-            [f"<@{user.id}>" for user in participants_message.mentions]
-        )
+        print('Got participants.')
+        participants = parse_participants(participants_message)
 
         # Initialise meeting object.
         new_meeting = Meeting(
@@ -71,6 +84,7 @@ class CreateInputModal(Modal, title = 'Create Meeting'):
         )
 
         # STEP 3: Get recurrence, if any.
+        print('Sending recurrence select view.')
         await interaction.followup.send(
             content = (
                 'Would you like to make this a recurring meeting?\n'
@@ -95,11 +109,14 @@ async def on_recurrence_select(
     new_meeting: Meeting,
     **_
 ) -> None:
+    print('In on recurrence select.')
+
     # If a recurrence was selected, set it.
     if recurrence != NULL_SELECT_VALUE:
         new_meeting.set_recurrence(recurrence)
 
     # STEP 4: Confirmation.
+    print('Sending confirmation view.')
     await interaction.response.edit_message(
         content = (
             'New meeting:\n'
@@ -111,8 +128,7 @@ async def on_recurrence_select(
             on_cancel = on_cancel,
             meetings = meetings,
             ids_to_names = ids_to_names,
-            new_meeting = new_meeting,
-            data_file_path = DATA_FILE_PATH
+            new_meeting = new_meeting
         )
     )
 
@@ -123,23 +139,31 @@ async def on_confirm(
     interaction: Interaction,
     meetings: list[Meeting],
     new_meeting: Meeting,
-    data_file_path: str,
     **_
 ) -> None:
+    print('In on confirm, adding meeting.')
+
     add_meeting(meetings, new_meeting)
-    write_meetings(data_file_path, meetings)
+    save_meetings()
+    print('Meeting added, data saved.')
 
     await interaction.message.edit(
         content = f'{new_meeting.get_title(True)} has been created! ✨',
         view = None
     )
 
+    print('Create meeting command end, confirmed.')
+
 async def on_cancel(
     interaction: Interaction,
     new_meeting: Meeting,
     **_
 ) -> None:
+    print('In on cancel.')
+
     await interaction.message.edit(
         content = f'{new_meeting.get_title(True)} has been discarded! 🗑️',
         view = None
     )
+
+    print('Create meeting command end, cancelled.')
