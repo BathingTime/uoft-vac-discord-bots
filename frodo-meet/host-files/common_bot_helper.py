@@ -6,14 +6,25 @@ To be deployed along with bot host files.
 from discord import Interaction, Message, ButtonStyle
 from discord.ui import View, button, Button
 
+from dotenv import load_dotenv
+from pathlib import Path
+
 from json import load, dump
 from re import split
 
+GETENV_BOT_TOKEN = 'BOT_TOKEN' # Common string used to get the bot's token from the environment (each bot should have their own environment).
 RESPONSE_TIMEOUT = 60 # Bots will stop waiting for responses after this number of seconds.
 WORD_LIMIT = 2000 # Word limit for Discord messages; might vary, but this is a safe value.
 NULL_SELECT_VALUE = '0' # Discord select values must be nonempty strings, so use this for null option (unless it is used for a legitemate option).
 MAX_SELECTS = 25 # Max number of select options for one message (supposedly).
 DIVIDER_STR = '——————————' # To separate prints of background tasks from those of commands, if you wish.
+
+
+# MACRO FUNCTIONS
+
+def load_local_dotenv(file: str) -> None:
+    '''Call dotenv.load_dotenv on the .env at the same level as the driver file.'''
+    load_dotenv(Path(file).parent / '.env')
 
 
 # FILE FUNCTIONS

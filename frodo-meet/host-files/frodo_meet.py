@@ -12,9 +12,11 @@ Driver file.
 from discord import Intents, Interaction, Guild, TextChannel
 from discord.ext import commands
 
+from os import getcwd, getenv
+
 from asyncio import sleep
 
-from common_bot_helper import chop_output, DIVIDER_STR
+from common_bot_helper import load_local_dotenv, chop_output, GETENV_BOT_TOKEN, DIVIDER_STR
 
 from frodo_meet_data import load_meetings, get_meetings, save_meetings
 from meeting_time import MeetingTime
@@ -25,13 +27,11 @@ from frodo_meet_background_tasks import notify_meetings, begin_meetings
 
 # CONSTANTS
 
-NOTIFY_CHANNEL_ID = 1491494362205392976
-
 CHECK_INTERVAL_SECS = 60 # Seconds between each check for meetings to notify/begin.
 NOTICE_TIME_SECS = 5 * 60 # Notify meetings that will begin in less than this number of minutes.
 
 
-# LAUNCH
+# SETUP
 
 intents = Intents.default()
 intents.message_content = True
@@ -58,7 +58,7 @@ async def on_ready():
 
     print('Beginning background task.')
     background_task = bot.loop.create_task(auto_notify_n_begin(
-        bot.get_channel(NOTIFY_CHANNEL_ID),
+        bot.get_channel(getenv('NOTIFY_CHANNEL_ID')),
         NOTICE_TIME_SECS
     ))
 
@@ -207,9 +207,13 @@ def get_ids_to_names(guild: Guild) -> dict[str: str]:
     return roles_dict | members_dict
 
 
-# THE CODE BODY BELOW CONTAINS SENSITIVE INFORMATION; KEEP COMPRESSED.
+# DRIVER BLOCK
 if __name__ == '__main__':
-    from os import getcwd
     print(f'Current working directory: {getcwd()}')
 
-    bot.run('MTM5MTIwNDQ3MjQwNzA2NDY4OA.GsICWF.64EdmwlT3BDEqV11ZZYaDuz03oyt548Ild3crQ')
+    load_local_dotenv(__file__)
+
+    bot_token = getenv(GETENV_BOT_TOKEN)
+    print(f'Bot token: {repr(bot_token)}')
+
+    bot.run(bot_token)

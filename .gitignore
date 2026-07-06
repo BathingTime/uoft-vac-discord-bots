@@ -1,0 +1,6 @@
+# Environment
+.env
+
+# Garbage
+.DS_Store
+__pycache__/

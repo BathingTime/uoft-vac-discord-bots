@@ -1,13 +1,3 @@
 {
-    "meetings": [
-        {
-            "title": "e",
-            "time": 1778472000.0,
-            "description": "",
-            "participants": [],
-            "recurrence": "",
-            "active": true,
-            "soon": false
-        }
-    ]
+    "meetings": []
 }
