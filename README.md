@@ -5,11 +5,13 @@ Operations are subject to change based on future webmasters' discretions.
 ---
 ### <mark><u>IMPORTANT</u></mark>
 
-This repository should be kept <mark><u>**PRIVATE**</u></mark>.
-
-Certain files contain **sensitive data** (private bot tokens).
+Never reveal <mark><u>**PRIVATE BOT TOKENS**</u></mark> to the public.
 \
-Unauthorised access to this data could allow someone to **take control of the bots**, thereby causing damage to them and/or the Discord server(s).
+Since the repository is public, this means not pushing any files containing this data to GitHub.
+\
+Instead, keep this data in **environment files** only, which should be in [.gitignore](.gitignore).
+
+Unauthorised access to tokens could allow someone to **take control of the bots**, thereby causing damage to them and/or the Discord server(s).
 
 ---
 ### Implementation
@@ -35,7 +37,10 @@ When editing a bot or starting a new one, try to be consistent with its and othe
 
 ---
 ### Hosting
-TBD
+
+The bots will be hosted on a **Raspberry Pi**, ideally set in the club office (this has yet to be tested).
+
+<u>SETUP IN PROGRESS.</u>
 
 ---
 ### Tips
@@ -58,7 +63,7 @@ TBD
 - Type annotations.
 - Organise and distinguish tasks.
 
-#### 3. **Make your code intentions clear**
+#### 3. Make your code intentions clear
 
 - Write code comments.
 - Function and class docstrings.
