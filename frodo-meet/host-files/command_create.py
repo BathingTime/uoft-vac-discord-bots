@@ -3,12 +3,15 @@
 from discord import Interaction
 from discord.ui import Modal, TextInput
 
+from pathlib import Path
+from sys import path as syspath
+repo_root = Path(__file__).resolve().parents[2]
+syspath.insert(0, str(repo_root))
 from common.common_bot_helper import get_response, ConfirmationViewDefault, NULL_SELECT_VALUE
 
 from frodo_meet_helper import add_meeting, is_title_taken, parse_participants
 from frodo_meet_discord_views import RecurrenceSelectView
 from frodo_meet_data import save_meetings
-
 from meeting import Meeting
 from meeting_time import MeetingTime
 

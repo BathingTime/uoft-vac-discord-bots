@@ -5,6 +5,10 @@ from discord.ui import View, Select
 
 from copy import deepcopy
 
+from pathlib import Path
+from sys import path as syspath
+repo_root = Path(__file__).resolve().parents[2]
+syspath.insert(0, str(repo_root))
 from common.common_bot_helper import get_response, ConfirmationViewDefault, RESPONSE_TIMEOUT, NULL_SELECT_VALUE
 
 from frodo_meet_helper import\
@@ -16,7 +20,6 @@ from frodo_meet_helper import\
     parse_participants
 from frodo_meet_discord_views import MeetingSelectView, RecurrenceSelectView
 from frodo_meet_data import save_meetings
-
 from meeting import Meeting,\
     ATTRIBUTE_TITLE,\
     ATTRIBUTE_TIME,\

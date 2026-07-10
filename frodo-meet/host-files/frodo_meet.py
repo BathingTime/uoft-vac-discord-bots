@@ -15,19 +15,16 @@ from discord.ext import commands
 from asyncio import sleep
 from os import getcwd, getenv
 
+from pathlib import Path
+from sys import path as syspath
+repo_root = Path(__file__).resolve().parents[2]
+syspath.insert(0, str(repo_root))
+from common.common_bot_helper import load_local_dotenv, chop_output, GETENV_BOT_TOKEN, DIVIDER_STR
+
 from frodo_meet_data import load_meetings, get_meetings, save_meetings
 from meeting_time import MeetingTime
 import command_show, command_create, command_delete, command_edit, command_toggle_active
 from frodo_meet_background_tasks import notify_meetings, begin_meetings
-
-# Load common_bot_helper.py from the project root.
-from pathlib import Path
-from sys import path as syspath
-
-repo_root = Path(__file__).resolve().parents[2]
-syspath.insert(0, str(repo_root))
-
-from common.common_bot_helper import load_local_dotenv, chop_output, GETENV_BOT_TOKEN, DIVIDER_STR
 
 
 # CONSTANTS

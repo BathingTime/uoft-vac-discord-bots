@@ -3,10 +3,13 @@
 from discord import Interaction, SelectOption
 from discord.ui import View, Select
 
+from pathlib import Path
+from sys import path as syspath
+repo_root = Path(__file__).resolve().parents[2]
+syspath.insert(0, str(repo_root))
 from common.common_bot_helper import RESPONSE_TIMEOUT, NULL_SELECT_VALUE, MAX_SELECTS
 
 from frodo_meet_helper import find_meeting
-
 from meeting import Meeting,\
     RECURRENCE_DAILY,\
     RECURRENCE_WEEKLY,\
