@@ -28,12 +28,15 @@ I've also included a a rough [template](bot_template.py) file that I wrote for s
 Refer to [Frodo Meet](frodo-meet) as an example bot folder.
 
 All bots should have their **own folder** under this repo, and all files specific to a bot should be kept in their folder. \
-Furthermore, all files required for hosting should be in a **host-files** subfolder (other than the [common bot helper file](common_bot_helper.py)).
+Furthermore, all files required for hosting should be in a **host-files** subfolder (other than files in [common](common)).
 
 A bot will likely have these components for hosting:
 - **Driver file**: Single file that uses Discord API to communicate with Discord directly and uses functions from helper files to execute tasks & get outputs ([e.g.](frodo-meet/host-files/frodo_meet.py)).
 - **Computation layer**: files containing functions, classes, variables, views, etc, for executing tasks and computing output. ([e.g.](frodo-meet/host-files/frodo_meet_helper.py)).
-- **Data layer**: Data files (if data needs to persist). ([e.g.](frodo-meet/host-files/meeting_entries.json)).
+- **Data layer**: Data files, if data needs to persist.
+    - These files should **not** be pushed to GitHub as they may be modified during testing on local machines, and pulling these files onto the hosting service may override existing data.
+    - Include these particular files in **.gitignore**.
+    - Create new copies of these files on the hosting service.
 
 When editing a bot or starting a new one, try to be consistent with its and other bots' organisation, unless the bot's functionality requires otherwise.
 

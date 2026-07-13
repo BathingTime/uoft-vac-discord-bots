@@ -1,10 +1,6 @@
 '''Frodo Meet - Sample Data
 '''
-from pathlib import Path
-from sys import path as syspath
-repo_root = Path(__file__).resolve().parents[2]
-syspath.insert(0, str(repo_root))
-from common.common_bot_helper import read_json_file
+from common.util import read_json_file
 
 from frodo_meet_data import read_meetings_from_data
 from meeting_time import MeetingTime

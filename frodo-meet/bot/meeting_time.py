@@ -5,11 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from pathlib import Path
-from sys import path as syspath
-repo_root = Path(__file__).resolve().parents[2]
-syspath.insert(0, str(repo_root))
-from common.common_bot_helper import parse_input
+from common.util import parse_input
 
 TORONTO_TIMEZONE = ZoneInfo("America/Toronto")
 

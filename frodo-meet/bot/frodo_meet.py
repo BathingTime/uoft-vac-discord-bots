@@ -15,11 +15,7 @@ from discord.ext import commands
 from asyncio import sleep
 from os import getcwd, getenv
 
-from pathlib import Path
-from sys import path as syspath
-repo_root = Path(__file__).resolve().parents[2]
-syspath.insert(0, str(repo_root))
-from common.common_bot_helper import load_local_dotenv, chop_output, GETENV_BOT_TOKEN, DIVIDER_STR
+from common.util import load_local_dotenv, chop_output, GETENV_BOT_TOKEN, DIVIDER_STR
 
 from frodo_meet_data import load_meetings, get_meetings, save_meetings
 from meeting_time import MeetingTime
@@ -60,7 +56,7 @@ async def on_ready():
 
     print('Beginning background task.')
     background_task = bot.loop.create_task(auto_notify_n_begin(
-        bot.get_channel(getenv('NOTIFY_CHANNEL_ID')),
+        bot.get_channel(int(getenv('NOTIFY_CHANNEL_ID'))),
         NOTICE_TIME_SECS
     ))
 
