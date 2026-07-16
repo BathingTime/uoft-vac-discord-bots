@@ -9,6 +9,7 @@ from meeting import Meeting,\
     ATTRIBUTE_TIME,\
     ATTRIBUTE_DESCRIPTION,\
     ATTRIBUTE_PARTICIPANTS,\
+    ATTRIBUTE_DM,\
     ATTRIBUTE_RECURRENCE,\
     ATTRIBUTE_ACTIVE,\
     ATTRIBUTE_SOON
@@ -24,7 +25,7 @@ _meetings: list[Meeting] = [] # Persistent meetings list.
 
 def load_meetings() -> None:
     global _meetings
-    _meetings = read_meetings_from_data( read_json_file(DATA_FILE_PATH))
+    _meetings = read_meetings_from_data(read_json_file(DATA_FILE_PATH))
 
 def get_meetings() -> list[Meeting]: return _meetings
 
@@ -34,13 +35,14 @@ def save_meetings() -> None:
         ATTRIBUTE_TIME: meeting.get_time().get_timestamp(),
         ATTRIBUTE_DESCRIPTION: meeting.get_description(),
         ATTRIBUTE_PARTICIPANTS: meeting.get_participants(),
+        ATTRIBUTE_DM: meeting.get_pingsbydm(),
         ATTRIBUTE_RECURRENCE: meeting.get_recurrence(),
         ATTRIBUTE_ACTIVE: meeting.get_active(),
         ATTRIBUTE_SOON: meeting.get_soon()
     } for meeting in _meetings]})
 
 
-# Helper function; also used for sample data.
+# Helper function. Also used for sample data.
 def read_meetings_from_data(file_data: dict) -> list[Meeting]:
     return [
         Meeting.from_file(entry_data)

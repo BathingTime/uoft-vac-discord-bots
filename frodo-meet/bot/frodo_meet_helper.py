@@ -164,8 +164,8 @@ def parse_participants(message: Message) -> list[str]:
     Return a list of all pings in a message, omitting all other non-ping parts.
     '''
     return (
-        [f"<@&{role.id}>" for role in message.role_mentions] +
-        [f"<@{user.id}>" for user in message.mentions]
+        [f'<@&{role.id}>' for role in message.role_mentions] +
+        [f'<@{user.id}>' for user in message.mentions]
     )
 
 

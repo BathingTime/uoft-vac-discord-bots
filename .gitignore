@@ -5,6 +5,9 @@
 # Bot data
 /frodo-meet/bot/meetings_data.json
 
+# 🧐
+ignore_me.py
+
 # Garbage
 .DS_Store
 __pycache__/

@@ -3,14 +3,14 @@
 Functions that many bots will likely find useful.
 To be deployed along with bot host files.
 '''
-from discord import Interaction, Message, ButtonStyle
+from discord import Interaction, Message, ButtonStyle, Guild
 from discord.ui import View, button, Button
 
 from dotenv import load_dotenv
 from pathlib import Path
 
 from json import load, dump
-from re import split
+from re import split, sub
 
 GETENV_BOT_TOKEN = 'BOT_TOKEN' # Common string used to get the bot's token from the environment (each bot should have their own environment).
 RESPONSE_TIMEOUT = 60 # Bots will stop waiting for responses after this number of seconds.
@@ -176,6 +176,30 @@ def chop_output(output: str, word_limit: int = WORD_LIMIT) -> tuple[str]:
 
     # Otherwise, all lines have been added, so return output list.
     return chopped
+
+
+# DISCORD DATA FUNCTIONS
+
+def get_ids_to_names(guild: Guild) -> dict[str: str]:
+    '''
+    Return a dictionary of ID-name pairs for the server's roles and members.
+    '''
+    roles_dict = {str(role.id): role.name for role in guild.roles}
+    members_dict = {str(member.id): member.display_name for member in guild.members}
+    # print(roles_dict, members_dict)
+
+    return roles_dict | members_dict
+
+
+def sub_ids_with_names(output: str, ids_to_names: dict[str: str]) -> str:
+    '''
+    Given a string, return it with all IDs replaced by their corresponding role or user server display name.
+
+    Precondition:
+    - IDs must be valid from the server.
+    '''
+    def repl(match): return ids_to_names.get(match.group(1), match.group(0))
+    return sub(r'<@&?(\d+)>', repl, output)
 
 
 if __name__ == '__main__':

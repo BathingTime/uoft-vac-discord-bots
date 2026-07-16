@@ -2,7 +2,7 @@
 '''
 from __future__ import annotations
 
-from re import sub
+from common.util import sub_ids_with_names
 
 from meeting_time import MeetingTime
 
@@ -11,6 +11,7 @@ ATTRIBUTE_TITLE = 'title'
 ATTRIBUTE_TIME = 'time'
 ATTRIBUTE_DESCRIPTION = 'description'
 ATTRIBUTE_PARTICIPANTS = 'participants'
+ATTRIBUTE_DM = 'dm'
 ATTRIBUTE_RECURRENCE = 'recurrence'
 ATTRIBUTE_ACTIVE = 'active'
 ATTRIBUTE_SOON = 'soon'
@@ -51,6 +52,7 @@ class Meeting:
     _time: MeetingTime
     _description: str
     _participants: list[str]
+    _pingsbydm: list[str]
     _recurrence: str
     _active: bool
     _soon: bool
@@ -60,6 +62,7 @@ class Meeting:
         time: MeetingTime,
         description: str = '',
         participants: list[str] = [],
+        pingsbydm: list[str] = [],
         recurrence: str = '',
         active: bool = True,
         soon: bool = False
@@ -68,6 +71,7 @@ class Meeting:
         self._time = time
         self._description = description
         self._participants = participants
+        self._pingsbydm = pingsbydm
         self._recurrence = recurrence
         self._active = active
         self._soon = soon
@@ -82,6 +86,7 @@ class Meeting:
             time = MeetingTime(entry_data[ATTRIBUTE_TIME]),
             description = entry_data[ATTRIBUTE_DESCRIPTION],
             participants = entry_data[ATTRIBUTE_PARTICIPANTS],
+            pingsbydm = entry_data[ATTRIBUTE_DM],
             recurrence = entry_data[ATTRIBUTE_RECURRENCE],
             active = entry_data[ATTRIBUTE_ACTIVE],
             soon = entry_data[ATTRIBUTE_SOON]
@@ -94,6 +99,7 @@ class Meeting:
             time = MeetingTime(original.get_time().get_timestamp() + time_inc),
             description = original.get_description(),
             participants = original.get_participants(),
+            pingsbydm = original.get_pingsbydm(),
             recurrence = original.get_recurrence(),
             active = original.get_active()
             # Set clone's soon to false.
@@ -181,25 +187,29 @@ class Meeting:
         # If not printing full, return output as it is.
         if not full: return output
         
-        # Otherwise, also add description and participants.
+        # Otherwise, also add description, participants, and pings by dm.
 
-        # Add description on next line if there is one.
+        # Add description on next line, if there is one.
         description = self.get_description()
         if description: output += f'\n{description}'
 
         # Add participants on next line.
         participants = self.get_participants()
-        if participants:
-            output += f'\n__Participants__: {', '.join(participants)}'
-
-            # If not printing to ping, replace all pings with the corresponding role/user's names.
-            if ids_to_names != None:
-                # print(ids_to_names)
-                
-                def repl(match): return ids_to_names.get(match.group(1), match.group(0))
-                output = sub(r'<@&?(\d+)>', repl, output)
+        output += (
+            f'\n__Participants__: {', '.join(participants)}'
+            if participants
+            else NO_PARTICIPANTS_MESSAGE
+        )
         
-        else: output += NO_PARTICIPANTS_MESSAGE
+        # Add pings by dm on next line, if there are any.
+        pingsbydm = self.get_pingsbydm()
+        if pingsbydm: output += f'\n- __Ping by DM__: {', '.join(pingsbydm)}'
+        
+        # If not printing to ping, replace all pings with the corresponding role/user's names.
+        # This will run even if no pings were added to the output; in any case, no repercussions.
+        if ids_to_names != None:
+            # print(ids_to_names)
+            output = sub_ids_with_names(output, ids_to_names)
         
         return output
 
@@ -312,6 +322,7 @@ class Meeting:
     def get_time(self) -> MeetingTime: return self._time
     def get_description(self) -> str: return self._description
     def get_participants(self) -> list[str]: return self._participants
+    def get_pingsbydm(self) -> list[str]: return self._pingsbydm
     def get_recurrence(self) -> str: return self._recurrence
     def get_active(self) -> bool: return self._active
     def get_soon(self) -> bool: return self._soon
@@ -322,6 +333,7 @@ class Meeting:
     def set_time(self, time: MeetingTime) -> None: self._time = time
     def set_description(self, description: str) -> None: self._description = description
     def set_participants(self, participants: list[str]) -> None: self._participants = participants
+    def set_pingsbydm(self, pingsbydm: list[str]) -> None: self._pingsbydm = pingsbydm
     def set_recurrence(self, recurrence: str) -> None: self._recurrence = recurrence
     def set_active(self, active: bool = True) -> None: self._active = active
     def set_soon(self, soon: bool = False) -> None: self._soon = soon

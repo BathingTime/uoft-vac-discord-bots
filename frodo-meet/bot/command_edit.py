@@ -21,6 +21,7 @@ from meeting import Meeting,\
     ATTRIBUTE_TIME,\
     ATTRIBUTE_DESCRIPTION,\
     ATTRIBUTE_PARTICIPANTS,\
+    ATTRIBUTE_DM,\
     ATTRIBUTE_RECURRENCE
 from meeting_time import MeetingTime
 
@@ -128,6 +129,7 @@ class EditPropertySlect(Select):
                 SelectOption(label = ATTRIBUTE_TIME.capitalize(), value = ATTRIBUTE_TIME),
                 SelectOption(label = ATTRIBUTE_DESCRIPTION.capitalize(), value = ATTRIBUTE_DESCRIPTION),
                 SelectOption(label = ATTRIBUTE_PARTICIPANTS.capitalize(), value = ATTRIBUTE_PARTICIPANTS),
+                SelectOption(label = ATTRIBUTE_DM.capitalize(), value = ATTRIBUTE_DM),
                 SelectOption(label = ATTRIBUTE_RECURRENCE.capitalize(), value = ATTRIBUTE_RECURRENCE)
             ]
         )
@@ -170,7 +172,7 @@ class EditPropertySlect(Select):
         await interaction.response.edit_message(
             content = (
                 f'You are editing the __{target_property}__ of {target_meeting.get_title(True)}.\n'
-                'Please enter the new value.'
+                'Please enter the new value *as you would when creating a new meeting*.'
             ),
             view = None
         )
@@ -212,17 +214,19 @@ class EditPropertySlect(Select):
         # If editing participants:
         elif target_property == ATTRIBUTE_PARTICIPANTS:
             print('Editing participants.')
-
             participants = parse_participants(new_value_message)
-
             updated_meeting.set_participants(participants)
+        
+        # If editing pings by dm:
+        elif target_property == ATTRIBUTE_DM:
+            print('Editing pings by dm.')
+            pingsbydm = parse_participants(new_value_message)
+            updated_meeting.set_pingsbydm(pingsbydm)
         
         # Otherwise, editing description:
         else:
             print('Editing description.')
-
             description = new_value_message.content
-
             updated_meeting.set_description(description)
 
         # STEP 4: Confirmation.

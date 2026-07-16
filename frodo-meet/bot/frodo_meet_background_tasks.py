@@ -1,12 +1,18 @@
 '''Frodo Meet - Background Tasks
 '''
-from frodo_meet_helper import add_meeting
+from discord import Forbidden
+from discord.ext.commands import Bot
 
+from re import search
+
+from common.util import sub_ids_with_names
+
+from frodo_meet_helper import add_meeting
 from meeting import Meeting, RECURRENCE_MAPPING, RECURRENCE_INC, RECURRENCE_MESSAGE
 from meeting_time import MeetingTime
 
 
-def notify_meetings(meetings: list[Meeting], now: MeetingTime, notice_time_secs: int) -> str:
+def notify_meetings(meetings: list[Meeting], now: MeetingTime, notice_time_secs: int) -> tuple[str, dict[str, list[Meeting]]]:
     '''
     Check if any active meetings not marked as 'soon' is within the notice time.
     Return a string of notify messages for all meetings that this applies to,
@@ -17,6 +23,7 @@ def notify_meetings(meetings: list[Meeting], now: MeetingTime, notice_time_secs:
     - meetings are sorted by time.
     '''
     output_list = []
+    to_dm: dict[str, list[Meeting]] = {}
 
     # Check all meetings.
     for meetings_i in range(len(meetings)):
@@ -32,25 +39,24 @@ def notify_meetings(meetings: list[Meeting], now: MeetingTime, notice_time_secs:
             curr_meeting.set_soon(True)
             continue
 
-        # Otherwise, add it to the output.
-
-        # If it's the first meeting to notify, record it in case it's the only one.
-        if not output_list: first_meeting = curr_meeting
+        # Otherwise, notify it.
 
         # Add meeting to notify.
         output_list.append(curr_meeting.to_discord(index = meetings_i, full = True))
 
+        # Record pings by dms.
+        for participant_dm in curr_meeting.get_pingsbydm():
+            to_dm.setdefault(participant_dm, []).append(curr_meeting)
+
         # Mark meeting as soon.
         curr_meeting.set_soon(True)
-    
-    num_outputs = len(output_list)
 
-    # If there are meetings to notify, return output.
-    if num_outputs > 1: return f'The following meetings will begin soon!\n{'\n'.join(output_list)}'
-    if num_outputs == 1: return f'{first_meeting.get_title(True)} will begin soon!\n{output_list[0]}'
-    
-    # Otherwise, there are no meetings to notify, so don't print anything.
-    return None
+    # Return output and pings to dm if there are any, else None.
+    return (
+        f'The following meeting(s) will begin soon:\n{'\n'.join(output_list)}'
+        if output_list else None,
+        to_dm if to_dm else None
+    )
 
 
 def begin_meetings(meetings: list[Meeting], now: MeetingTime) -> str:
@@ -84,6 +90,64 @@ def begin_meetings(meetings: list[Meeting], now: MeetingTime) -> str:
             output += f'{curr_meeting.get_title(True)} has started{recurring_output}! Happy meeting! 🎈\n'
     
     return output if output else None
+
+
+async def dm_notifications(
+    bot: Bot,
+    to_dm: dict[str, list[Meeting]],
+    ids_to_names: dict[str: str]
+) -> None:
+    '''
+    Send notifications in DMs for all given pings.
+    If ping is a role, send notifications for all members of that role.
+    Return a string saying which users were failed to DM, if any.
+    '''
+    for ping, meetings in to_dm.items():
+
+        # Get ID from ping.
+        id = int(search(r'\d+', ping).group())
+
+        # If ID belongs to a user, notify just that user.
+        if '&' not in ping:
+            user = await bot.fetch_user(id)
+            users = [user]
+        
+        # Otherwise, ID belongs to a role, so notify all members of that role.
+        else:
+            for guild in bot.guilds:
+                role = guild.get_role(id)
+
+                if role is not None:
+                    users = role.members
+
+        # Construct message.
+        message = (
+            f'Hey, {sub_ids_with_names(f'<@{user.id}>', ids_to_names)}!\n'
+            'Here\'s a reminder that the following meeting(s) will begin soon:\n'
+            f'{'\n'.join([
+                meeting.to_discord(full = True, ids_to_names = ids_to_names)
+                for meeting in meetings
+            ])}'
+        )
+
+        failed_ids = []
+
+        # DM all users.
+        for user in users:
+            try: await user.send(message)
+
+            # If failed to DM, add them to print in the notify channel.
+            except Forbidden:
+                print(f'Failed to DM {user}.')
+                failed_ids.append(user.id)
+        
+        return (
+            f'The following user(s) could not be DMed to be notified 🧐: '
+            f'{sub_ids_with_names(
+                ', '.join([f'**<@{id}>**' for id in failed_ids]),
+                ids_to_names
+            )}'
+        ) if failed_ids else None
 
 
 if __name__ == '__main__':

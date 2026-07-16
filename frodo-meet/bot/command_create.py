@@ -74,15 +74,26 @@ class CreateInputModal(Modal, title = 'Create Meeting'):
         print('Got participants.')
         participants = parse_participants(participants_message)
 
+        # STEP 3: Get pings by DM.
+        print('Awaiting pings by dm input…')
+        await interaction.followup.send(
+            'Enter pings for all participants you want to be **notified by DM**.\n'
+            'Or type any non-ping message to skip.'
+        )
+        pingsbydm_message = await get_response(interaction)
+        print('Got pings by dm.')
+        pingsbydm = parse_participants(pingsbydm_message)
+
         # Initialise meeting object.
         new_meeting = Meeting(
             self._title_input.value,
             time,
             self._description_input.value,
             participants,
+            pingsbydm,
         )
 
-        # STEP 3: Get recurrence, if any.
+        # STEP 4: Get recurrence, if any.
         print('Sending recurrence select view.')
         await interaction.followup.send(
             content = (
@@ -114,7 +125,7 @@ async def on_recurrence_select(
     if recurrence != NULL_SELECT_VALUE:
         new_meeting.set_recurrence(recurrence)
 
-    # STEP 4: Confirmation.
+    # STEP 5: Confirmation.
     print('Sending confirmation view.')
     await interaction.response.edit_message(
         content = (

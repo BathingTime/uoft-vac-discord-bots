@@ -11,6 +11,8 @@ In a terminal, run the command with corresponding info:
 \
 Then enter the password. On success, you should be in the Pi.
 
+Run `exit` to exit the Pi.
+
 ---
 ### Pi Structure
 
@@ -39,7 +41,7 @@ Here are instructions for common scenarios when working with the Pi.
 \
 Instructions for using particular commands is farther below.
 
-### Setting up a new bot
+## Setting up a new bot
 
 Make sure the new completed bot directory is on GitHub.
 \
@@ -101,7 +103,7 @@ Run:
 `sudo systemctl start bot-name`
 - Use the same bot-name you used when creating the service.
 
-### Updating an existing bot
+## Updating an existing bot
 
 Assumes the steps above have been completed for said bot
 \
@@ -116,7 +118,7 @@ Make sure the bot's directory on GitHub has the desired changes.
 - `sudo reboot`: restarts the entire Pi.
 - `source venv/bin/activate`: enter a bot's venv.
     - You'll know you're in a venv if you see `(venv)` at the start of the command line.
-- `pip list`: check an environment's libraries.
+    - Run `deactivate` to exit a venv.
 
 ### `nano`
 
@@ -129,6 +131,15 @@ Run: `nano filepath`
 - `ctrl + x` to exit.
 
 There are many more operations that you can search online. The ones above are the essentials.
+
+### Libraries: `pip`
+
+Make sure you are in a bot's venv when modifying its libraries.
+
+- `pip install library`
+- `pip install -r requirements.txt`: installs all libraries listed in `requirements.txt`.
+- `pip uninstall library`
+- `pip list`: check an environment's libraries.
 
 ### Service: `systemctl`
 

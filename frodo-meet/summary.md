@@ -12,20 +12,22 @@ Refer to the [sample](meeting_entries_sample.json) file for what this data might
 Each meeting object contains 7 attributes:
 1. **Title** (`str`)
     - Titles must be **unique** across meetings in the file.
-2. **Time**: time the meeting is set to begin ([`MeetingTime`](host-files/meeting_time.py) object)
+1. **Time**: time the meeting is set to begin ([`MeetingTime`](host-files/meeting_time.py) object)
     - Contains the **UNIX timestamp** and useful functions.
     - Times of existing meetings must be **in the future** (an existing meeting plan for a time in the past doesn't make sense).
-3. **Description** (`str`)
+1. **Description** (`str`)
     - Can store any single **formatted** Discord message.
-4. **Participants**: list of pings (`list[str]`)
+1. **Participants**: list of pings (`list[str]`)
     - **Role** pings are represented by `<@&…>`, where … is the <u>role ID</u>.
     - **Member** pings are represented by `<@…>`, where … is the <u>user ID</u>.
     - `everyone` and `here` will work but seem redundant for our purposes (for all execs, ping the exec role).
-5. **Recurrence** (`str`)
+1. **Pings by DM**: list of pings by DM (`list[str]`)
+    - Same kind of data as <u>participants</u>.
+1. **Recurrence** (`str`)
     - `'daily', 'weekly', 'yearly',` or empty string for normal (one-time).
     - A meeting is considered "recurring" if its recurrence is a nonempty string.
-6. **Active**: whether to notify (`bool`)
-7. **Soon**: whether the meeting has been observed to begin within the notify time. (`bool`)
+1. **Active**: whether to notify (`bool`)
+1. **Soon**: whether the meeting has been observed to begin within the notify time. (`bool`)
     - Not directly accessible by the user; only used to mark a meeting as beginning soon.
 
 \

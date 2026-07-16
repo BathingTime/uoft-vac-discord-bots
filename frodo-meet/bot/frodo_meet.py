@@ -9,18 +9,18 @@ Stores and reads meeting data in meetings_data.json.
 Driver file.
 '''
 
-from discord import Intents, Interaction, Guild, TextChannel
+from discord import Intents, Interaction, TextChannel
 from discord.ext import commands
 
 from asyncio import sleep
 from os import getcwd, getenv
 
-from common.util import load_local_dotenv, chop_output, GETENV_BOT_TOKEN, DIVIDER_STR
+from common.util import load_local_dotenv, chop_output, get_ids_to_names, GETENV_BOT_TOKEN, DIVIDER_STR
 
 from frodo_meet_data import load_meetings, get_meetings, save_meetings
 from meeting_time import MeetingTime
 import command_show, command_create, command_delete, command_edit, command_toggle_active
-from frodo_meet_background_tasks import notify_meetings, begin_meetings
+from frodo_meet_background_tasks import notify_meetings, begin_meetings, dm_notifications
 
 
 # CONSTANTS
@@ -50,14 +50,16 @@ async def on_ready():
     await tree.sync()
     print(f'Logged in as {bot.user}.')
 
+    notify_channel = bot.get_channel(int(getenv('NOTIFY_CHANNEL_ID')))
+    await notify_channel.send('Frodomeet clocking in! 🫡')
+
     if background_task is not None:
         print('Background task already exists. 🧐')
         return
 
     print('Beginning background task.')
     background_task = bot.loop.create_task(auto_notify_n_begin(
-        bot.get_channel(int(getenv('NOTIFY_CHANNEL_ID'))),
-        NOTICE_TIME_SECS
+        notify_channel, NOTICE_TIME_SECS
     ))
 
 
@@ -156,21 +158,22 @@ async def auto_notify_n_begin(notify_channel: TextChannel, notice_time_secs: int
 
     # Loop as long as bot is online.
     while not bot.is_closed():
+        print(DIVIDER_STR)
         # await notify_channel.send(f'Test: the current time is {MeetingTime.get_now().to_discord()}.')
 
         meetings = get_meetings()
         now = MeetingTime.get_now()
 
         # Check for any meetings to notify and get the output.
-        notify_output = notify_meetings(meetings, now, notice_time_secs)
+        notify_output, to_dm = notify_meetings(meetings, now, notice_time_secs)
+        print('Got notify result.')
 
         # Check for any meetings to begin and get the output.
         begin_output = begin_meetings(meetings, now)
+        print('Got begin results.')
 
         # If meetings are modified, save data.
         if notify_output or begin_output: save_meetings()
-
-        print(DIVIDER_STR)
 
         # If there are meetings to notify, print it in the auto channel.
         if notify_output:
@@ -178,6 +181,16 @@ async def auto_notify_n_begin(notify_channel: TextChannel, notice_time_secs: int
                 await notify_channel.send(suboutput)
             print('Meetings have been notified!')
         else: print('No meetings to notify.')
+
+        # If there are pings to dm, dm them.
+        if to_dm:
+            failed_dms_output = await dm_notifications(
+                bot, to_dm,
+                get_ids_to_names(bot.get_guild(int(getenv('SERVER_ID'))))
+            )
+            print('DMs have been sent!')
+
+            if failed_dms_output: await notify_channel.send(failed_dms_output)
 
         # If there are meetings that have begun, print it in the auto channel.
         if begin_output:
@@ -190,19 +203,6 @@ async def auto_notify_n_begin(notify_channel: TextChannel, notice_time_secs: int
 
         # Sleep for the specified interval.
         await sleep(CHECK_INTERVAL_SECS)
-
-
-# HELPER FUNCTIONS
-
-def get_ids_to_names(guild: Guild) -> dict[str: str]:
-    '''
-    Return a dictionary of ID-name pairs for the server's roles and members.
-    '''
-    roles_dict = {str(role.id): role.name for role in guild.roles}
-    members_dict = {str(member.id): member.display_name for member in guild.members}
-    # print(roles_dict, members_dict)
-
-    return roles_dict | members_dict
 
 
 # DRIVER BLOCK
