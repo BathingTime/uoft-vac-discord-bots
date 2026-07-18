@@ -112,7 +112,7 @@ async def on_confirm(
         view = None
     )
 
-    failed_dm_users = await dm_meeting(interaction.client, target_meeting, (
+    failed_dm_users = await dm_meeting(interaction.client, target_meeting.get_dm(), (
         f'Letting you know that a meeting you\'re in has been **deleted**:\n'
         f'{target_meeting.to_discord(ids_to_names = ids_to_names)}\n\n'
         'More free time on the calendar! 😎'

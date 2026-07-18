@@ -19,6 +19,8 @@ from frodo_meet_helper import (
     remove_meeting,
     is_title_taken,
     parse_participants,
+    dm_meeting,
+    build_failed_dm_err,
 )
 from frodo_meet_discord_views import MeetingSelectView, RecurrenceSelectView
 from frodo_meet_data import save_meetings
@@ -31,6 +33,11 @@ from meeting import (Meeting,
     ATTRIBUTE_RECURRENCE,
 )
 from meeting_time import MeetingTime
+
+PARTICIPANTS_ADD = 'Add Participants'
+PARTICIPANTS_REMOVE = 'Remove Participants'
+DM_ADD = 'Add pings by DM'
+DM_REMOVE = 'Remove pings by DM'
 
 
 async def edit_meeting(
@@ -77,7 +84,7 @@ async def edit_meeting(
 
     await interaction.response.send_message(
         content = build_on_meeting_select_content(target_meeting),
-        view = EditPropertySelectView(meetings, ids_to_names, target_meeting)
+        view = EditPropertySelectView(meetings, target_meeting, ids_to_names)
     )
 
 
@@ -136,9 +143,11 @@ class EditPropertySelect(Select):
                 SelectOption(label = ATTRIBUTE_TITLE.capitalize(), value = ATTRIBUTE_TITLE),
                 SelectOption(label = ATTRIBUTE_TIME.capitalize(), value = ATTRIBUTE_TIME),
                 SelectOption(label = ATTRIBUTE_DESCRIPTION.capitalize(), value = ATTRIBUTE_DESCRIPTION),
-                SelectOption(label = ATTRIBUTE_PARTICIPANTS.capitalize(), value = ATTRIBUTE_PARTICIPANTS),
-                SelectOption(label = ATTRIBUTE_DM.capitalize(), value = ATTRIBUTE_DM),
-                SelectOption(label = ATTRIBUTE_RECURRENCE.capitalize(), value = ATTRIBUTE_RECURRENCE)
+                SelectOption(label = PARTICIPANTS_ADD, value = PARTICIPANTS_ADD),
+                SelectOption(label = PARTICIPANTS_REMOVE, value = PARTICIPANTS_REMOVE),
+                SelectOption(label = DM_ADD, value = DM_ADD),
+                SelectOption(label = DM_REMOVE, value = DM_REMOVE),
+                SelectOption(label = ATTRIBUTE_RECURRENCE.capitalize(), value = ATTRIBUTE_RECURRENCE),
             ]
         )
     
@@ -167,9 +176,10 @@ class EditPropertySelect(Select):
                 view = RecurrenceSelectView(
                     on_select = on_recurrence_select,
                     meetings = meetings,
-                    ids_to_names = ids_to_names,
                     target_meeting = target_meeting,
-                    updated_meeting = updated_meeting
+                    updated_meeting = updated_meeting,
+                    ids_to_names = ids_to_names,
+                    target_property = target_property
                 )
             )
             return
@@ -179,7 +189,7 @@ class EditPropertySelect(Select):
 
         await interaction.response.edit_message(
             content = (
-                f'You are editing the __{target_property}__ of {target_meeting.get_title(True)}.\n'
+                f'You are editing the __{build_target_property_content(target_property)}__ of {target_meeting.get_title(True)}.\n'
                 'Please enter the new value *as you would when creating a new meeting*.'
             ),
             view = None
@@ -187,6 +197,8 @@ class EditPropertySelect(Select):
         
         new_value_message = await get_response(interaction)
         print('Got new value.')
+
+        pings = []
 
         # If editing title:
         if target_property == ATTRIBUTE_TITLE:
@@ -204,7 +216,7 @@ class EditPropertySelect(Select):
             updated_meeting.set_title(title)
 
         # If editing time:
-        if target_property == ATTRIBUTE_TIME:
+        elif target_property == ATTRIBUTE_TIME:
             print('Editing time.')
 
             time = MeetingTime.from_input(new_value_message.content)
@@ -219,31 +231,68 @@ class EditPropertySelect(Select):
             # Reset meeting's soon status.
             updated_meeting.set_soon()
         
-        # If editing participants:
-        elif target_property == ATTRIBUTE_PARTICIPANTS:
-            print('Editing participants.')
-            participants = parse_participants(new_value_message)
-            updated_meeting.set_participants(participants)
-        
-        # If editing pings by dm:
-        elif target_property == ATTRIBUTE_DM:
-            print('Editing pings by dm.')
-            pingsbydm = parse_participants(new_value_message)
-            updated_meeting.set_dm(pingsbydm)
-        
-        # Otherwise, editing description:
-        else:
+        # If editing description:
+        elif target_property == ATTRIBUTE_DESCRIPTION:
             print('Editing description.')
-            description = new_value_message.content
-            updated_meeting.set_description(description)
+            updated_meeting.set_description(new_value_message.content)
+        
+        # If adding participants:
+        elif target_property == PARTICIPANTS_ADD:
+            print('Adding participants.')
+            pings = parse_participants(new_value_message)
+            updated_meeting.add_pings(pings, ATTRIBUTE_PARTICIPANTS)
+        
+        # If removing participants:
+        elif target_property == PARTICIPANTS_REMOVE:
+            print('Removing participants.')
+            pings = parse_participants(new_value_message)
+            updated_meeting.remove_pings(pings, ATTRIBUTE_PARTICIPANTS)
+        
+        # If adding pings by dm:
+        elif target_property == DM_ADD:
+            print('Adding pings by dm.')
+            pings = parse_participants(new_value_message)
+            updated_meeting.add_pings(pings, ATTRIBUTE_DM)
+        
+        # If removing pings by dm:
+        elif target_property == DM_REMOVE:
+            print('Removing pings by dm.')
+            pings = parse_participants(new_value_message)
+            updated_meeting.remove_pings(pings, ATTRIBUTE_DM)
+        
+        # Otherwise, unkown target property.
+        else:
+            print('Unknown target property, terminating.')
+            return
 
         # STEP 4: Confirmation.
         print('New value set on updated meeting, sending confirmation view.')
 
         await interaction.followup.send(
             content = build_confirmation_content(updated_meeting, ids_to_names),
-            view = build_confirmation_view(meetings, target_meeting, updated_meeting)
+            view = build_confirmation_view(
+                meetings,
+                target_meeting,
+                updated_meeting,
+                ids_to_names,
+                target_property,
+                pings
+            )
         )
+
+
+def build_target_property_content(target_property: str) -> str:
+    return (
+        target_property if target_property not in (
+            PARTICIPANTS_ADD, PARTICIPANTS_REMOVE, DM_ADD, DM_REMOVE
+        ) else
+        
+        ATTRIBUTE_PARTICIPANTS if target_property in (
+            PARTICIPANTS_ADD, PARTICIPANTS_REMOVE
+        ) else
+        
+        'pings by DM'
+    )
 
 
 # ON RECURRENCE SELECT
@@ -252,9 +301,10 @@ async def on_recurrence_select(
     interaction: Interaction,
     recurrence: str,
     meetings: list[Meeting],
-    ids_to_names: dict[str: str],
     target_meeting: Meeting,
     updated_meeting: Meeting,
+    ids_to_names: dict[str: str],
+    target_property: str,
     **_
 ) -> None:
     print('In on recurrence select.')
@@ -267,7 +317,13 @@ async def on_recurrence_select(
 
     await interaction.response.edit_message(
         content = build_confirmation_content(updated_meeting, ids_to_names),
-        view = build_confirmation_view(meetings, target_meeting, updated_meeting)
+        view = build_confirmation_view(
+            meetings,
+            target_meeting,
+            updated_meeting,
+            ids_to_names,
+            target_property
+        )
     )
 
 
@@ -278,6 +334,9 @@ async def on_confirm(
     meetings: list[Meeting],
     target_meeting: Meeting,
     updated_meeting: Meeting,
+    ids_to_names: dict[str: str],
+    target_property: str,
+    updated_pings: list[str],
     **_
 ) -> None:
     print('In on confirm, removing original meeting.')
@@ -298,9 +357,54 @@ async def on_confirm(
     print('Updated meeting added, data saved.')
 
     await interaction.response.edit_message(
-        content = f'Changes to {target_meeting.get_title(True)} have been __saved__! ✨',
+        content = (
+            f'Changes for the {build_target_property_content(target_property)} for {target_meeting.get_title(True)} have been __saved__! ✨\n'
+            f'{updated_meeting.to_discord(full = True, ids_to_names = ids_to_names)}'
+            f'{(
+                f'\n\n{' '.join(updated_meeting.get_participants())}'
+                if target_property == ATTRIBUTE_TIME else ''
+            )}'
+        ),
         view = None
     )
+
+    failed_dm_users = await dm_meeting(interaction.client,
+        updated_meeting.get_dm()
+        if target_property == ATTRIBUTE_TIME else
+
+        [ping for ping in updated_pings if ping in updated_meeting.get_dm()]
+        if target_property in (PARTICIPANTS_ADD, PARTICIPANTS_REMOVE) else
+
+        updated_pings
+        if target_property in (DM_ADD, DM_REMOVE) else
+
+        [],
+        (
+            f'Letting you know that {(
+                'the **time for a meeting you\'re in has changed**'
+                if target_property == ATTRIBUTE_TIME else
+
+                'you\'ve been **added to a meeting**'
+                if target_property == PARTICIPANTS_ADD else
+
+                'you\'ve been **removed from a meeting**'
+                if target_property == PARTICIPANTS_REMOVE else
+
+                'you\'ve been **added to the list of pings by DM** for a meeting'
+                if target_property == DM_ADD else
+
+                'you\'ve been **removed from the list of pings by DM** for a meeting'
+            )}:\n'
+            f'{updated_meeting.to_discord(
+                full = target_property in (ATTRIBUTE_TIME, PARTICIPANTS_ADD, DM_ADD),
+                ids_to_names = ids_to_names
+            )}'
+        ), ids_to_names)
+
+    if failed_dm_users: await interaction.followup.send(
+        build_failed_dm_err(failed_dm_users, ids_to_names)
+    )
+    print('DMs have been sent.')
 
     print('Edit meeting command end, confirmed.')
 
@@ -332,13 +436,18 @@ def build_confirmation_content(
 def build_confirmation_view(
     meetings: list[Meeting],
     target_meeting: Meeting,
-    updated_meeting: Meeting
+    updated_meeting: Meeting,
+    ids_to_names: dict[str: str],
+    target_property: str,
+    updated_pings: list[str]
 ) -> ConfirmationViewDefault:
     return ConfirmationViewDefault(
         on_confirm = on_confirm,
         on_cancel = on_cancel,
-        timeout = RESPONSE_TIMEOUT,
         meetings = meetings,
         target_meeting = target_meeting,
-        updated_meeting = updated_meeting
+        updated_meeting = updated_meeting,
+        ids_to_names = ids_to_names,
+        target_property = target_property,
+        updated_pings = updated_pings
     )

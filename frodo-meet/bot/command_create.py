@@ -177,7 +177,7 @@ async def on_confirm(
         view = None
     )
 
-    failed_dm_users = await dm_meeting(interaction.client, new_meeting, (
+    failed_dm_users = await dm_meeting(interaction.client, new_meeting.get_dm(), (
         'Letting you know that you\'ve been **added to a new meeting**:\n'
         f'{new_meeting.to_discord(full = True, ids_to_names = ids_to_names)}\n\n'
         'See you there! 👀'

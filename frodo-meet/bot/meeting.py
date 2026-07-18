@@ -1,6 +1,7 @@
 '''Frodo Meet - Meeting Class
 '''
 from __future__ import annotations
+from typing import Literal
 
 from common.util import sub_ids_with_names
 
@@ -337,6 +338,26 @@ class Meeting:
     def set_recurrence(self, recurrence: str) -> None: self._recurrence = recurrence
     def set_active(self, active: bool = True) -> None: self._active = active
     def set_soon(self, soon: bool = False) -> None: self._soon = soon
+
+    def add_pings(self, pings: list[str], target: Literal['participants', 'dm']) -> None:
+        '''
+        Postcondition:
+        - pings will only contain the ones successfully added.
+        '''
+        destination = self.get_participants() if target == 'participants' else self.get_dm()
+        for ping in pings:
+            if ping not in destination: destination.append(ping)
+            else: pings.remove(ping)
+    
+    def remove_pings(self, pings: list[str], target: Literal['participants', 'dm']) -> None:
+        '''
+        Postcondition:
+        - pings will only contain the ones successfully removed.
+        '''
+        destination = self.get_participants() if target == 'participants' else self.get_dm()
+        for ping in pings:
+            if ping in destination: destination.remove(ping)
+            else: pings.remove(ping)
 
     def toggle_active(self) -> bool:
         new_active = not self.get_active()

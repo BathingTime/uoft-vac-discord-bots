@@ -29,9 +29,6 @@ from meeting_time import MeetingTime
 import command_show, command_create, command_delete, command_edit, command_toggle_active
 from frodo_meet_background_tasks import notify_meetings, begin_meetings, dm_notifications
 
-
-# CONSTANTS
-
 CHECK_INTERVAL_SECS = 60 # Seconds between each check for meetings to notify/begin.
 NOTICE_TIME_SECS = 5 * 60 # Notify meetings that will begin in less than this number of minutes.
 

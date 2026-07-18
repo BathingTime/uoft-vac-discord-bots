@@ -176,9 +176,9 @@ def parse_participants(message: Message) -> list[str]:
     )
 
 
-async def dm_meeting(bot: Bot, meeting: Meeting, message: str, ids_to_names: dict[str: str]) -> list[User]:
+async def dm_meeting(bot: Bot, pings: list[str], message: str, ids_to_names: dict[str: str]) -> list[User]:
     '''
-    DM all relevant participants a given message.
+    DM all users from the given pings a given message.
     Return a list of users who were failed to DM, if any.
 
     Note: the given message is IN ADDITION to the greeting on the first line;
@@ -186,7 +186,7 @@ async def dm_meeting(bot: Bot, meeting: Meeting, message: str, ids_to_names: dic
     '''
     failed_users: list[User] = []
 
-    for ping in meeting.get_dm():
+    for ping in pings:
         users: list[User] = await get_users_from_ping(bot, ping)
 
         for user in users:
