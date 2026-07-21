@@ -16,7 +16,6 @@ ATTRIBUTE_DM = 'dm'
 ATTRIBUTE_RECURRENCE = 'recurrence'
 ATTRIBUTE_ACTIVE = 'active'
 ATTRIBUTE_SOON = 'soon'
-ATTRIBUTE_RECURRING = 'recurring' # Only used by to_display; not an attribute of a Meeting object.
 
 # Recurrence: will be cloned the same time next occurrence upon beginning.
 RECURRENCE_DAILY = 'daily'
@@ -85,12 +84,12 @@ class Meeting:
         return cls(
             title = entry_data[ATTRIBUTE_TITLE],
             time = MeetingTime(entry_data[ATTRIBUTE_TIME]),
-            description = entry_data[ATTRIBUTE_DESCRIPTION],
-            participants = entry_data[ATTRIBUTE_PARTICIPANTS],
-            dm = entry_data[ATTRIBUTE_DM],
-            recurrence = entry_data[ATTRIBUTE_RECURRENCE],
-            active = entry_data[ATTRIBUTE_ACTIVE],
-            soon = entry_data[ATTRIBUTE_SOON]
+            description = entry_data.get(ATTRIBUTE_DESCRIPTION, ''),
+            participants = entry_data.get(ATTRIBUTE_PARTICIPANTS, []),
+            dm = entry_data.get(ATTRIBUTE_DM, []),
+            recurrence = entry_data.get(ATTRIBUTE_RECURRENCE, ''),
+            active = entry_data.get(ATTRIBUTE_ACTIVE, True),
+            soon = entry_data.get(ATTRIBUTE_SOON, False)
         )
     
     @classmethod
@@ -281,15 +280,17 @@ class Meeting:
 
         # If relevant to any intermediate filters, display.
         # Don't check active since it's default.
-        if ATTRIBUTE_SOON in filters and self.get_soon() or \
-        recurrence and (recurrence in filters or 'recurring' in filters):
-            return True
+        if (
+            ATTRIBUTE_SOON in filters and self.get_soon() or 
+            recurrence and (recurrence in filters or 'recurring' in filters)
+        ): return True
 
         # Otherwise, if relevant to any -intermediate filters, don't display.
-        if f'-{ATTRIBUTE_SOON}' in filters and self.get_soon() or \
-        recurrence and (f'-{recurrence}' in filters or '-recurring' in filters) or \
-        f'-{ATTRIBUTE_ACTIVE}' in filters and self.get_active():
-            return False
+        if (
+            f'-{ATTRIBUTE_SOON}' in filters and self.get_soon() or 
+            recurrence and (f'-{recurrence}' in filters or '-recurring' in filters) or 
+            f'-{ATTRIBUTE_ACTIVE}' in filters and self.get_active()
+        ): return False
         
         # If "all" is an argument, display.
         if 'all' in filters: return True
