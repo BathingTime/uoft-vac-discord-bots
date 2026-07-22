@@ -5,6 +5,7 @@ from discord.ui import Modal, TextInput
 
 from common.util import (
     get_response,
+    parse_input,
     ConfirmationViewDefault,
     NULL_SELECT_VALUE,
 )
@@ -12,27 +13,26 @@ from common.util import (
 from frodo_meet_helper import (
     add_meeting,
     is_title_taken,
-    parse_participants,
+    verify_names,
     dm_meeting, 
     build_failed_dm_err,
 )
 from frodo_meet_discord_views import RecurrenceSelectView
 from frodo_meet_data import save_meetings
-from meeting import Meeting
+from meeting import Meeting, PARTICIPANTS_BREAKPOINTS
 from meeting_time import MeetingTime
 
 
 async def create_meeting(
     interaction: Interaction,
     meetings: list[Meeting],
-    ids_to_names: dict[str: str]
+    names_to_pings: dict[str: str]
 ) -> None:
     print('Create meeting command start.')
 
     print('Sending initial modal.')
     await interaction.response.send_modal(CreateInputModal(
-        meetings,
-        ids_to_names
+        meetings, names_to_pings
     ))
 
 
@@ -40,18 +40,18 @@ async def create_meeting(
 
 class CreateInputModal(Modal, title = 'Create Meeting'):
     _meetings: list[Meeting]
-    _ids_to_names: dict[str: str]
+    _names_to_pings: dict[str: str]
 
     # STEP 1: Get title, time, and description.
     _title_input = TextInput(label = 'Title')
     _time_input = TextInput(label = 'Time')
     _description_input = TextInput(label = 'Description', required = False)
 
-    def __init__(self, meetings: list[Meeting], ids_to_names: dict[str: str]) -> None:
+    def __init__(self, meetings: list[Meeting], names_to_pings: dict[str: str]) -> None:
         print('In initial modal, awaiting inputs…')
         super().__init__()
         self._meetings = meetings
-        self._ids_to_names = ids_to_names
+        self._names_to_pings = names_to_pings
 
     async def on_submit(self, interaction: Interaction) -> None:
         print('Got initial inputs.')
@@ -76,23 +76,29 @@ class CreateInputModal(Modal, title = 'Create Meeting'):
         # STEP 2: Get participants.
         print('Awaiting participants input…')
         await interaction.response.send_message(
-            'Enter **pings** for all participants you want to add for this meeting, separated by spaces. (roles or users)\n'
-            'E.g. @Lead @Frodo Meet\n'
-            'Or type any non-ping message to skip.'
+            'Enter the **display names** for all participants you want to add for this meeting, separated by commas. (roles or users)\n'
+            'E.g. Lead, Frodo Meet\n'
+            'Or type an arbitary message to skip.'
         )
-        participants_message = await get_response(interaction)
+        participants_input = await get_response(interaction)
         print('Got participants.')
-        participants = parse_participants(participants_message)
+        participants = verify_names(
+            parse_input(participants_input.content, PARTICIPANTS_BREAKPOINTS),
+            self._names_to_pings
+        )
 
         # STEP 3: Get pings by DM.
         print('Awaiting pings by dm input…')
         await interaction.followup.send(
-            'Enter pings for all participants you want to be **notified by DM**.\n'
-            'Or type any non-ping message to skip.'
+            'Enter the display names for all participants you want to be **notified by DM**.\n'
+            'Or type an arbitrary message to skip.'
         )
-        pingsbydm_message = await get_response(interaction)
+        dm_input = await get_response(interaction)
         print('Got pings by dm.')
-        pingsbydm = parse_participants(pingsbydm_message)
+        dm = verify_names(
+            parse_input(dm_input.content, PARTICIPANTS_BREAKPOINTS),
+            self._names_to_pings
+        )
 
         # Initialise meeting object.
         new_meeting = Meeting(
@@ -100,7 +106,7 @@ class CreateInputModal(Modal, title = 'Create Meeting'):
             time,
             self._description_input.value,
             participants,
-            pingsbydm,
+            dm,
         )
 
         # STEP 4: Get recurrence, if any.
@@ -113,7 +119,7 @@ class CreateInputModal(Modal, title = 'Create Meeting'):
             view = RecurrenceSelectView(
                 on_select = on_recurrence_select,
                 meetings = self._meetings,
-                ids_to_names = self._ids_to_names,
+                names_to_pings = self._names_to_pings,
                 new_meeting = new_meeting
             )
         )
@@ -125,7 +131,7 @@ async def on_recurrence_select(
     interaction: Interaction,
     recurrence: str,
     meetings: list[Meeting],
-    ids_to_names: dict[str: str],
+    names_to_pings: dict[str: str],
     new_meeting: Meeting,
     **_
 ) -> None:
@@ -140,14 +146,14 @@ async def on_recurrence_select(
     await interaction.response.edit_message(
         content = (
             'New meeting:\n'
-            f'{new_meeting.to_discord(full = True, ids_to_names = ids_to_names,)}\n\n'
+            f'{new_meeting.to_discord(full = True)}\n\n'
             'Would you like to create this meeting?'
         ),
         view = ConfirmationViewDefault(
             on_confirm = on_confirm,
             on_cancel = on_cancel,
             meetings = meetings,
-            ids_to_names = ids_to_names,
+            names_to_pings = names_to_pings,
             new_meeting = new_meeting
         )
     )
@@ -159,7 +165,7 @@ async def on_confirm(
     interaction: Interaction,
     meetings: list[Meeting],
     new_meeting: Meeting,
-    ids_to_names: dict[str: str],
+    names_to_pings: dict[str: str],
     **_
 ) -> None:
     print('In on confirm, adding meeting.')
@@ -171,7 +177,7 @@ async def on_confirm(
     await interaction.message.edit(
         content = (
             f'{new_meeting.get_title(True)} has been __created__! ✨\n'
-            f'{new_meeting.to_discord(full = True, ids_to_names = ids_to_names)}\n\n'
+            f'{new_meeting.to_discord(full = True, names_to_pings = names_to_pings)}\n\n'
             'See y\'alls then! 👀'
         ),
         view = None
@@ -179,12 +185,12 @@ async def on_confirm(
 
     failed_dm_users = await dm_meeting(interaction.client, new_meeting.get_dm(), (
         'Letting you know that you\'ve been **added to a new meeting**:\n'
-        f'{new_meeting.to_discord(full = True, ids_to_names = ids_to_names)}\n\n'
+        f'{new_meeting.to_discord(full = True)}\n\n'
         'See you there! 👀'
-    ), ids_to_names)
+    ), names_to_pings)
 
     if failed_dm_users: await interaction.followup.send(
-        build_failed_dm_err(failed_dm_users, ids_to_names)
+        build_failed_dm_err(failed_dm_users)
     )
     print('DMs have been sent.')
 

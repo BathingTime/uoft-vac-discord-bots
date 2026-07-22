@@ -19,11 +19,11 @@ from os import getcwd, getenv
 from common.util import (
     load_local_dotenv,
     chop_output,
-    get_ids_to_names,
     GETENV_BOT_TOKEN,
     DIVIDER_STR,
 )
 
+from frodo_meet_helper import get_names_to_pings
 from frodo_meet_data import load_meetings, get_meetings, save_meetings
 from meeting_time import MeetingTime
 import command_show, command_create, command_delete, command_edit, command_toggle_active
@@ -81,7 +81,6 @@ async def show_meetings(interaction: Interaction, filters: str = '') -> None:
     await command_show.show_meetings(
         interaction,
         get_meetings(),
-        get_ids_to_names(interaction.guild),
         filters
     )
 
@@ -97,7 +96,7 @@ async def create_meeting(interaction: Interaction) -> None:
     await command_create.create_meeting(
         interaction,
         get_meetings(),
-        get_ids_to_names(interaction.guild)
+        get_names_to_pings(interaction.guild)
     )
 
 @command(
@@ -112,7 +111,7 @@ async def delete_meeting(interaction: Interaction, target: str = None) -> None:
     await command_delete.delete_meeting(
         interaction,
         get_meetings(),
-        get_ids_to_names(interaction.guild),
+        get_names_to_pings(interaction.guild),
         target
     )
 
@@ -128,7 +127,7 @@ async def edit_meeting(interaction: Interaction, target: str = None) -> None:
     await command_edit.edit_meeting(
         interaction,
         get_meetings(),
-        get_ids_to_names(interaction.guild),
+        get_names_to_pings(interaction.guild),
         target
     )
 
@@ -144,7 +143,7 @@ async def toggle_active(interaction: Interaction, target: str = None) -> None:
     await command_toggle_active.toggle_active(
         interaction,
         get_meetings(),
-        get_ids_to_names(interaction.guild),
+        get_names_to_pings(interaction.guild),
         target
     )
 
@@ -152,7 +151,7 @@ async def toggle_active(interaction: Interaction, target: str = None) -> None:
     name = 'help-frodo-meet',
     description = 'Need help with my functions? I got you!'
 )
-async def hi_frodo_meet(interaction: Interaction) -> None:
+async def help_frodo_meet(interaction: Interaction) -> None:
     print(
         f'{DIVIDER_STR}\n'
         f'Help command prompted, calling command.'
@@ -209,10 +208,7 @@ async def auto_notify_n_begin(notify_channel: TextChannel, notice_time_secs: int
 
         # If there are pings to dm, dm them.
         if to_dm:
-            failed_dms_output = await dm_notifications(
-                bot, to_dm,
-                get_ids_to_names(bot.get_guild(int(getenv('SERVER_ID'))))
-            )
+            failed_dms_output = await dm_notifications(bot, to_dm)
             print('DMs have been sent!')
 
             if failed_dms_output: await notify_channel.send(failed_dms_output)

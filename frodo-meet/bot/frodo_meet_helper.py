@@ -1,22 +1,19 @@
 '''Frodo Meet - Helper
 '''
-from discord import Message, User
+from discord import Guild, User
 from discord.ext.commands import Bot
 
+from os import getenv
+
 from common.util import (
-    get_users_from_ping,
     dm_user,
-    sub_ids_with_names,
+    get_users_from_name,
 )
 
 from meeting import Meeting
 
 
-def get_meetings_to_discord(
-    meetings: list[Meeting],
-    ids_to_names: dict[str: str],
-    filters: tuple[str]
-) -> str:
+def get_meetings_to_discord(meetings: list[Meeting], filters: tuple[str]) -> str:
     '''
     Display the meetings list in order.
     Along with displaying times, also include how much time the meeting is from now.
@@ -47,8 +44,7 @@ def get_meetings_to_discord(
         # Add meeting to print.
         output += f'{curr_meeting.to_discord(
             index = meetings_i,
-            full = 'full' in filters,
-            ids_to_names = ids_to_names
+            full = 'full' in filters
         )}\n'
     
     return output if output else 'There are no meetings under such filters. 🧐'
@@ -166,19 +162,44 @@ def is_title_taken(meetings: list[Meeting], title: str) -> str:
             return f'A meeting already has the title **{title}**. 🧐'
 
 
-def parse_participants(message: Message) -> list[str]:
+def get_names_to_pings(guild: Guild) -> dict[str: str]:
     '''
-    Return a list of all pings in a message, omitting all other non-ping parts.
+    Return a dictionary of display name-ping pairs for
+    all roles and users with the exec role in the server.
+    Keys will all be lowercase.
     '''
-    return (
-        [f'<@&{role.id}>' for role in message.role_mentions] +
-        [f'<@{user.id}>' for user in message.mentions]
-    )
+    names_to_pings = {}
+
+    # Roles:
+    for role in guild.roles:
+        names_to_pings[role.name.lower()] = f'<@&{role.id}>'
+
+    # Users (execs only):
+    for member in guild.get_role(int(getenv('EXEC_ROLE_ID'))).members:
+        names_to_pings[member.display_name.lower()] = f'<@{member.id}>'
+    
+    # print(names_to_pings)
+    return names_to_pings
 
 
-async def dm_meeting(bot: Bot, pings: list[str], message: str, ids_to_names: dict[str: str]) -> list[User]:
+def verify_names(names: list[str], names_to_pings: dict[str: str]) -> list[str]:
+    '''Return the list of names that only appear as keys in names_to_pings.'''
+    return [name for name in names if name in names_to_pings]
+
+
+def get_ping_str(participants: list[str], names_to_pings:dict[str: str]) -> str:
     '''
-    DM all users from the given pings a given message.
+    Return a string of all participants as pings, separated by spaces.
+    If ping not found, use the unformatted name.
+    '''
+    return ' '.join([
+        names_to_pings.get(name, name) for name in participants
+    ])
+
+
+async def dm_meeting(bot: Bot, names: list[str], message: str, names_to_pings: dict[str: str]) -> list[User]:
+    '''
+    DM all users a given message.
     Return a list of users who were failed to DM, if any.
 
     Note: the given message is IN ADDITION to the greeting on the first line;
@@ -186,12 +207,12 @@ async def dm_meeting(bot: Bot, pings: list[str], message: str, ids_to_names: dic
     '''
     failed_users: list[User] = []
 
-    for ping in pings:
-        users: list[User] = await get_users_from_ping(bot, ping)
+    for name in names:
+        users: list[User] = await get_users_from_name(bot, name, names_to_pings)
 
         for user in users:
             if await dm_user(user, (
-                f'Hey, {sub_ids_with_names(f'<@{user.id}>', ids_to_names)}! 👋\n'
+                f'Hey, {name.title()}! 👋\n'
                 f'{message}'
             )) == -1:
                 failed_users.append(user)
@@ -199,13 +220,9 @@ async def dm_meeting(bot: Bot, pings: list[str], message: str, ids_to_names: dic
     return failed_users
 
 
-def build_failed_dm_err(failed_users: list[User], ids_to_names: dict[str: str]) -> str:
+def build_failed_dm_err(failed_users: list[User]) -> str:
     return (
-        f'The following user(s) could not be DMed to be notified 🧐: '
-        f'{sub_ids_with_names(
-            ', '.join([f'**<@{user.id}>**' for user in failed_users]),
-            ids_to_names
-        )}'
+        f'The following user(s) could not be DMed to be notified 🧐: {' '.join(failed_users)}'
     ) if failed_users else None
 
 

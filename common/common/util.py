@@ -94,17 +94,21 @@ class ConfirmationViewDefault(View):
         await self._on_cancel(interaction, **self._data)
 
 
-def parse_input(input: str, breakpoints_re: str, lower: bool = True) -> list[str]:
+def parse_input(
+    input: str,
+    breakpoints_re: str,
+    strip_points: str = ' ',
+    lower: bool = True
+) -> list[str]:
     '''
     Given an input string and a regex of breakpoints,
     return a list of the args (substrings) from the input split by the breakpoints.
-    Can choose whether to make all args lowercase.
+    Can choose to strip and/or make args lowercase.
     '''
-    return [
-        arg.lower() if lower else arg
-        for arg in split(breakpoints_re, input)
-        if arg
-    ]
+    result = [arg for arg in split(breakpoints_re, input) if arg]
+    if strip_points: result = [arg.strip(strip_points) for arg in result]
+    if lower: result = [arg.lower() for arg in result]
+    return result
 
 
 # OUTPUT
@@ -213,28 +217,35 @@ def sub_ids_with_names(output: str, ids_to_names: dict[str: str]) -> str:
     return sub(r'<@&?(\d+)>', repl, output)
 
 
-async def get_users_from_ping(bot: Bot, ping: str) -> list[User]:
+async def get_users_from_name(
+    bot: Bot,
+    name: str,
+    names_to_pings: dict[str: str]
+) -> list[User]:
     '''
-    If given a user ping, return a list containing the user object.
-    If given a role ping, return a list of user objects of all members of that role.
+    If given a role name, return a list of all members of that role as users.
+    If given a user name, return a list containing that user.
 
-    Precondition:
-    - Ping is in correct format (<@…> or <@&…>)
+    If not found, return None.
     '''
     users: list[User] = []
-    # Get ID from ping.
+
+    ping = names_to_pings.get(name, None)
+    if not ping: return
+
     id = int(search(r'\d+', ping).group())
 
-    # If ID belongs to a user, notify just that user.
-    if '&' not in ping:
-        user = await bot.fetch_user(id)
-        users = [user]
-    
-    # Otherwise, ID belongs to a role, so notify all members of that role.
-    else:
+    if '&' in ping:
         for guild in bot.guilds:
             role = guild.get_role(id)
-            if role: users = role.members
+            if role:
+                users = role.members
+                break
+    
+    else:
+        user = await bot.get_user(id)
+        if not user: user = await bot.fetch_user(id)
+        users = [user]
     
     return users
 

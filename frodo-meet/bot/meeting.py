@@ -3,8 +3,6 @@
 from __future__ import annotations
 from typing import Literal
 
-from common.util import sub_ids_with_names
-
 from meeting_time import MeetingTime
 
 
@@ -39,7 +37,7 @@ RECURRENCE_MAPPING = { # Map recurring labels to corresponding number of seconds
     }
 }
 
-NO_PARTICIPANTS_MESSAGE = '\n__No participants__ 🧐'
+PARTICIPANTS_BREAKPOINTS = ','
 
 
 class Meeting:
@@ -108,7 +106,7 @@ class Meeting:
 
     # INSTANCE METHODS
 
-    def to_discord(self, index: int = None, full: bool = False, ids_to_names: dict[str: str] = None) -> str:
+    def to_discord(self, index: int = None, full: bool = False, names_to_pings: dict[str: str] = None) -> str:
         '''
         Return a string of the meeting's data to be sent in Discord.
         
@@ -194,22 +192,22 @@ class Meeting:
         if description: output += f'\n{description}'
 
         # Add participants on next line.
+        # If printing to ping, replace all names with corresponding pings.
         participants = self.get_participants()
         output += (
-            f'\n__Participants__: {', '.join(participants)}'
+            f'\n__Participants__: {(' ' if names_to_pings else ', ').join(
+                (names_to_pings.get(name, name) if names_to_pings else name.title())
+                for name in participants
+            )}'
             if participants
-            else NO_PARTICIPANTS_MESSAGE
+            else '\n__No participants__ 🧐'
         )
         
-        # Add pings by dm on next line, if there are any.
+        # Add pings by dm on next line, if any.
         dm = self.get_dm()
-        if dm: output += f'\n- __Ping by DM__: {', '.join(dm)}'
-        
-        # If not printing to ping, replace all pings with the corresponding role/user's names.
-        # This will run even if no pings were added to the output; in any case, no repercussions.
-        if ids_to_names != None:
-            # print(ids_to_names)
-            output = sub_ids_with_names(output, ids_to_names)
+        if dm: output += f'\n- __Ping by DM__: {' '.join(
+            [name.title() for name in dm]
+        )}'
         
         return output
 
@@ -340,25 +338,25 @@ class Meeting:
     def set_active(self, active: bool = True) -> None: self._active = active
     def set_soon(self, soon: bool = False) -> None: self._soon = soon
 
-    def add_pings(self, pings: list[str], target: Literal['participants', 'dm']) -> None:
+    def add_names(self, names: list[str], target: Literal['participants', 'dm']) -> None:
         '''
         Postcondition:
-        - pings will only contain the ones successfully added.
+        - names will only contain the ones successfully added.
         '''
         destination = self.get_participants() if target == 'participants' else self.get_dm()
-        for ping in pings:
-            if ping not in destination: destination.append(ping)
-            else: pings.remove(ping)
+        for name in names:
+            if name not in destination: destination.append(name)
+            else: names.remove(name)
     
-    def remove_pings(self, pings: list[str], target: Literal['participants', 'dm']) -> None:
+    def remove_names(self, names: list[str], target: Literal['participants', 'dm']) -> None:
         '''
         Postcondition:
-        - pings will only contain the ones successfully removed.
+        - names will only contain the ones successfully removed.
         '''
         destination = self.get_participants() if target == 'participants' else self.get_dm()
-        for ping in pings:
-            if ping in destination: destination.remove(ping)
-            else: pings.remove(ping)
+        for name in names:
+            if name in destination: destination.remove(name)
+            else: names.remove(name)
 
     def toggle_active(self) -> bool:
         new_active = not self.get_active()

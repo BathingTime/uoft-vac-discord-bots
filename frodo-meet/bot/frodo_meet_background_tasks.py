@@ -1,20 +1,21 @@
 '''Frodo Meet - Background Tasks
 '''
-from discord import User
 from discord.ext.commands import Bot
 
-from common.util import (
-    get_users_from_ping,
-    sub_ids_with_names,
-    dm_user,
+from frodo_meet_helper import (
+    add_meeting,
+    dm_meeting,
+    build_failed_dm_err,
 )
-
-from frodo_meet_helper import add_meeting
 from meeting import Meeting, RECURRENCE_MAPPING, RECURRENCE_INC, RECURRENCE_MESSAGE
 from meeting_time import MeetingTime
 
 
-def notify_meetings(meetings: list[Meeting], now: MeetingTime, notice_time_secs: int) -> tuple[str, dict[str, list[Meeting]]]:
+def notify_meetings(
+    meetings: list[Meeting],
+    now: MeetingTime,
+    notice_time_secs: int
+) -> tuple[str, dict[str, list[Meeting]]]:
     '''
     Check if any active meetings not marked as 'soon' is within the notice time.
     Return a string of notify messages for all meetings that this applies to,
@@ -97,44 +98,23 @@ def begin_meetings(meetings: list[Meeting], now: MeetingTime) -> str:
 async def dm_notifications(
     bot: Bot,
     to_dm: dict[str, list[Meeting]],
-    ids_to_names: dict[str: str]
-) -> None:
+    names_to_pings: dict[str: str]
+) -> str:
     '''
-    Send notifications in DMs for all given pings.
-    If ping is a role, send notifications for all members of that role.
+    Send notifications in DMs for all given names.
+    If name is a role, send notifications for all members of that role.
     Return a string saying which users were failed to DM, if any.
     '''
-    for ping, meetings in to_dm.items():
-
-        # Get users from ping.
-        users: list[User] = get_users_from_ping(bot, ping)
-
-        # Construct message.
-        message = (
-            f'Hey, {sub_ids_with_names(f'<@{user.id}>', ids_to_names)}!\n'
+    for name, meetings in to_dm.items():
+        failed_dm_users = await dm_meeting(bot, [name], (
             'Here\'s a reminder that the following meeting(s) will begin soon:\n'
             f'{'\n'.join([
-                meeting.to_discord(full = True, ids_to_names = ids_to_names)
+                meeting.to_discord(full = True)
                 for meeting in meetings
             ])}'
-        )
+        ), names_to_pings)
 
-        failed_users: list[User] = []
-
-        # DM all users.
-        # If failed to DM, add them to print in the notify channel.
-        for user in users:
-            if await dm_user(user, message) == -1:
-                print(f'Failed to DM {sub_ids_with_names(f'<@{user.id}>')}.')
-                failed_users.append(user)
-        
-        return (
-            f'The following user(s) could not be DMed to be notified 🧐: '
-            f'{sub_ids_with_names(
-                ', '.join([f'**<@{user.id}>**' for user in failed_users]),
-                ids_to_names
-            )}'
-        ) if failed_users else None
+        if failed_dm_users: return build_failed_dm_err(failed_dm_users)
 
 
 if __name__ == '__main__':

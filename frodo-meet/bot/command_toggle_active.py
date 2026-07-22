@@ -7,6 +7,7 @@ from common.util import ConfirmationViewDefault
 from frodo_meet_helper import (
     get_meetings_to_discord,
     find_meeting,
+    get_ping_str,
     dm_meeting,
     build_failed_dm_err,
 )
@@ -18,7 +19,7 @@ from meeting import Meeting
 async def toggle_active(
     interaction: Interaction,
     meetings: list[Meeting],
-    ids_to_names: dict[str: str],
+    names_to_pings: dict[str: str],
     target: str
 ) -> None:
     print('Toggle active command start.')
@@ -34,12 +35,12 @@ async def toggle_active(
         await interaction.response.send_message(
             content = (
                 f'Enter the title or index of the meeting whose active status you want to toggle:\n'
-                f'{get_meetings_to_discord(meetings, None, ('all',))}'
+                f'{get_meetings_to_discord(meetings, ('all',))}'
             ),
             view = MeetingSelectView(
                 on_meeting_select,
                 meetings,
-                ids_to_names = ids_to_names
+                names_to_pings = names_to_pings
             )
         )
         return
@@ -56,7 +57,7 @@ async def toggle_active(
     print('Got target meeting, sending confirmation view.')
     await interaction.response.send_message(
         content = build_confirmation_content(target_meeting),
-        view = build_confirmation_view(meetings, target_meeting, ids_to_names)
+        view = build_confirmation_view(meetings, target_meeting, names_to_pings)
     )
 
 
@@ -66,13 +67,13 @@ async def on_meeting_select(
     interaction: Interaction,
     meetings: list[Meeting],
     target_meeting: Meeting,
-    ids_to_names: dict[str: str]
+    names_to_pings: dict[str: str]
 ) -> None:
     # Confirmation.
     print('In on meeting select, sending confirmation view.')
     await interaction.response.edit_message(
         content = build_confirmation_content(target_meeting),
-        view = build_confirmation_view(meetings, target_meeting, ids_to_names)
+        view = build_confirmation_view(meetings, target_meeting, names_to_pings)
     )
 
 
@@ -82,7 +83,7 @@ async def on_confirm(
     interaction: Interaction,
     meetings: list[Meeting],
     target_meeting: Meeting,
-    ids_to_names: dict[str: str],
+    names_to_pings: dict[str: str],
     **_
 ) -> None:
     print('In on confirm, getting target meeting.')
@@ -110,7 +111,7 @@ async def on_confirm(
                 'activated__! 🔊' if new_active else 'deactivated__! 🔇'
             )}\n'
             f'{'Let\'s do this! 🫡' if new_active else 'Take a breather! 😙'}\n'
-            f'{' '.join(target_meeting.get_participants())}'
+            f'{get_ping_str(target_meeting.get_participants(), names_to_pings)}'
         ),
         view = None
     )
@@ -119,12 +120,12 @@ async def on_confirm(
         f'Letting you know that a meeting you\'re in has been **{(
             'activated' if new_active else 'deactivated'
         )}**:\n'
-        f'{target_meeting.to_discord(full = True, ids_to_names = ids_to_names)}\n\n'
+        f'{target_meeting.to_discord(full = True)}\n\n'
         f'{'Let\'s do this! 🫡' if new_active else 'Take a breather! 😙'}'
-    ), ids_to_names)
+    ), names_to_pings)
 
     if failed_dm_users: await interaction.followup.send(
-        build_failed_dm_err(failed_dm_users, ids_to_names)
+        build_failed_dm_err(failed_dm_users)
     )
     print('DMs have been sent.')
 
