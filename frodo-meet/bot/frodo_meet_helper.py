@@ -1,14 +1,8 @@
 '''Frodo Meet - Helper
 '''
 from discord import Guild, User
-from discord.ext.commands import Bot
 
 from os import getenv
-
-from common.util import (
-    dm_user,
-    get_users_from_name,
-)
 
 from meeting import Meeting
 
@@ -195,29 +189,6 @@ def get_ping_str(participants: list[str], names_to_pings:dict[str: str]) -> str:
     return ' '.join([
         names_to_pings.get(name, name) for name in participants
     ])
-
-
-async def dm_meeting(bot: Bot, names: list[str], message: str, names_to_pings: dict[str: str]) -> list[User]:
-    '''
-    DM all users a given message.
-    Return a list of users who were failed to DM, if any.
-
-    Note: the given message is IN ADDITION to the greeting on the first line;
-    the greeting is sent automatically in this function.
-    '''
-    failed_users: list[User] = []
-
-    for name in names:
-        users: list[User] = await get_users_from_name(bot, name, names_to_pings)
-
-        for user in users:
-            if await dm_user(user, (
-                f'Hey, {name.title()}! 👋\n'
-                f'{message}'
-            )) == -1:
-                failed_users.append(user)
-    
-    return failed_users
 
 
 def build_failed_dm_err(failed_users: list[User]) -> str:

@@ -2,9 +2,12 @@
 '''
 from discord.ext.commands import Bot
 
+from common.util import (
+    dm_users_from_names,
+)
+
 from frodo_meet_helper import (
     add_meeting,
-    dm_meeting,
     build_failed_dm_err,
 )
 from meeting import Meeting, RECURRENCE_MAPPING, RECURRENCE_INC, RECURRENCE_MESSAGE
@@ -106,13 +109,13 @@ async def dm_notifications(
     Return a string saying which users were failed to DM, if any.
     '''
     for name, meetings in to_dm.items():
-        failed_dm_users = await dm_meeting(bot, [name], (
+        failed_dm_users = await dm_users_from_names(bot, [name], names_to_pings, (
             'Here\'s a reminder that the following meeting(s) will begin soon:\n'
             f'{'\n'.join([
                 meeting.to_discord(full = True)
                 for meeting in meetings
             ])}'
-        ), names_to_pings)
+        ))
 
         if failed_dm_users: return build_failed_dm_err(failed_dm_users)
 

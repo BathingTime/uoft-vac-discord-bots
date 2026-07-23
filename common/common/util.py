@@ -70,8 +70,7 @@ class ConfirmationViewDefault(View):
     _on_cancel: callable
     _data: dict
 
-    def __init__(
-        self,
+    def __init__(self,
         on_confirm: callable,
         on_cancel: callable,
         **data: dict
@@ -83,12 +82,12 @@ class ConfirmationViewDefault(View):
         self._on_cancel = on_cancel
         self._data = data
     
-    @button(label='Yes', style=ButtonStyle.green)
+    @button(label = 'Yes', style = ButtonStyle.green)
     async def confirm(self, interaction: Interaction, _: Button):
         print('Confirmed, executing on confirm process.')
         await self._on_confirm(interaction, **self._data)
     
-    @button(label='No', style=ButtonStyle.red)
+    @button(label = 'No', style = ButtonStyle.red)
     async def cancel(self, interaction: Interaction, _: Button):
         print('Cancelled, executing on cancel process.')
         await self._on_cancel(interaction, **self._data)
@@ -193,6 +192,34 @@ async def dm_user(user: User, message: str) -> int:
     except Forbidden: return -1
 
 
+async def dm_users_from_names(
+    bot: Bot,
+    names: list[str],
+    names_to_pings: dict[str: str],
+    message: str
+) -> list[User]:
+    '''
+    DM all users from the given names a given message.
+    Return a list of users who were failed to DM, if any.
+
+    Note: the given message is IN ADDITION to the greeting on the first line;
+    the greeting is sent automatically in this function.
+    '''
+    failed_users: list[User] = []
+
+    for name in names:
+        users: list[User] = await get_users_from_name(bot, name, names_to_pings)
+
+        for user in users:
+            if await dm_user(user, (
+                f'Hey, {name.title()}! 👋\n'
+                f'{message}'
+            )) == -1:
+                failed_users.append(user)
+    
+    return failed_users
+
+
 # DISCORD ID MANIPULATION
 
 def get_ids_to_names(guild: Guild) -> dict[str: str]:
@@ -243,7 +270,7 @@ async def get_users_from_name(
                 break
     
     else:
-        user = await bot.get_user(id)
+        user = bot.get_user(id)
         if not user: user = await bot.fetch_user(id)
         users = [user]
     

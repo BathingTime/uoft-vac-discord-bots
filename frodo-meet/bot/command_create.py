@@ -7,6 +7,7 @@ from common.util import (
     get_response,
     parse_input,
     ConfirmationViewDefault,
+    dm_users_from_names,
     NULL_SELECT_VALUE,
 )
 
@@ -14,7 +15,6 @@ from frodo_meet_helper import (
     add_meeting,
     is_title_taken,
     verify_names,
-    dm_meeting, 
     build_failed_dm_err,
 )
 from frodo_meet_discord_views import RecurrenceSelectView
@@ -129,10 +129,10 @@ class CreateInputModal(Modal, title = 'Create Meeting'):
 
 async def on_recurrence_select(
     interaction: Interaction,
-    recurrence: str,
     meetings: list[Meeting],
     names_to_pings: dict[str: str],
     new_meeting: Meeting,
+    recurrence: str,
     **_
 ) -> None:
     print('In on recurrence select.')
@@ -164,8 +164,8 @@ async def on_recurrence_select(
 async def on_confirm(
     interaction: Interaction,
     meetings: list[Meeting],
-    new_meeting: Meeting,
     names_to_pings: dict[str: str],
+    new_meeting: Meeting,
     **_
 ) -> None:
     print('In on confirm, adding meeting.')
@@ -183,11 +183,16 @@ async def on_confirm(
         view = None
     )
 
-    failed_dm_users = await dm_meeting(interaction.client, new_meeting.get_dm(), (
-        'Letting you know that you\'ve been **added to a new meeting**:\n'
-        f'{new_meeting.to_discord(full = True)}\n\n'
-        'See you there! 👀'
-    ), names_to_pings)
+    failed_dm_users = await dm_users_from_names(
+        interaction.client,
+        new_meeting.get_dm(),
+        names_to_pings,
+        (
+            'Letting you know that you\'ve been **added to a new meeting**:\n'
+            f'{new_meeting.to_discord(full = True)}\n\n'
+            'See you there! 👀'
+        )
+    )
 
     if failed_dm_users: await interaction.followup.send(
         build_failed_dm_err(failed_dm_users)

@@ -28,11 +28,7 @@ class MeetingSelectView(View):
         print('In meeting select view, awaiting target meeting select…')
         super().__init__(timeout = RESPONSE_TIMEOUT)
 
-        self.add_item(MeetingSelect(
-            on_select,
-            meetings,
-            data
-        ))
+        self.add_item(MeetingSelect(on_select, meetings, data))
     
 class MeetingSelect(Select):
     _on_select: callable
@@ -50,15 +46,12 @@ class MeetingSelect(Select):
 
         super().__init__(
             placeholder = 'Select meeting…',
-            options = [
-                SelectOption(
-                    label = f'{meetings_i + 1}. {meeting.get_title()}',
-                    value = meeting.get_title()
-                    # Does not use index as values since an index can still be valid even if the target meeting no longer exists.
-                    # Use titles since they are unique.
-                )
-                for meetings_i, meeting in enumerate(meetings[:MAX_SELECTS])
-            ]
+            options = [SelectOption(
+                label = f'{meetings_i + 1}. {meeting.get_title()}',
+                value = meeting.get_title()
+                # Does not use index as values since an index can still be valid even if the target meeting no longer exists.
+                # Use titles since they are unique.
+            ) for meetings_i, meeting in enumerate(meetings[:MAX_SELECTS])]
         )
 
     async def callback(self, interaction: Interaction):
@@ -75,9 +68,9 @@ class MeetingSelect(Select):
         # Execute followup process.
         print('Got target meeting, executing followup process for meeting select.')
         await self._on_select(
-            interaction,
-            self._meetings,
-            target_meeting,
+            interaction = interaction,
+            meetings = self._meetings,
+            target_meeting = target_meeting,
             **self._data
         )
 
@@ -122,7 +115,7 @@ class RecurrenceSelect(Select):
         # Execute followup process.
         print('Executing followup process for recurrence select.')
         await self._on_select(
-            interaction,
-            recurrence,
+            interaction = interaction,
+            recurrence = recurrence,
             **self._data
         )

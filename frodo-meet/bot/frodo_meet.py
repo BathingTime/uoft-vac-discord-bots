@@ -79,9 +79,9 @@ async def show_meetings(interaction: Interaction, filters: str = '') -> None:
         f'Show meetings command prompted, calling command.'
     )
     await command_show.show_meetings(
-        interaction,
-        get_meetings(),
-        filters
+        interaction = interaction,
+        meetings = get_meetings(),
+        filters = filters
     )
 
 @command(
@@ -94,9 +94,9 @@ async def create_meeting(interaction: Interaction) -> None:
         f'Create meeting command prompted, calling command.'
     )
     await command_create.create_meeting(
-        interaction,
-        get_meetings(),
-        get_names_to_pings(interaction.guild)
+        interaction = interaction,
+        meetings = get_meetings(),
+        names_to_pings = get_names_to_pings(interaction.guild)
     )
 
 @command(
@@ -109,10 +109,10 @@ async def delete_meeting(interaction: Interaction, target: str = None) -> None:
         f'Delete meeting command prompted, calling command.'
     )
     await command_delete.delete_meeting(
-        interaction,
-        get_meetings(),
-        get_names_to_pings(interaction.guild),
-        target
+        interaction = interaction,
+        meetings = get_meetings(),
+        names_to_pings = get_names_to_pings(interaction.guild),
+        target = target
     )
 
 @command(
@@ -125,10 +125,10 @@ async def edit_meeting(interaction: Interaction, target: str = None) -> None:
         f'Edit meeting command prompted, calling command.'
     )
     await command_edit.edit_meeting(
-        interaction,
-        get_meetings(),
-        get_names_to_pings(interaction.guild),
-        target
+        interaction = interaction,
+        meetings = get_meetings(),
+        names_to_pings = get_names_to_pings(interaction.guild),
+        target = target
     )
 
 @command(
@@ -141,10 +141,10 @@ async def toggle_active(interaction: Interaction, target: str = None) -> None:
         f'Toggle active command prompted, calling command.'
     )
     await command_toggle_active.toggle_active(
-        interaction,
-        get_meetings(),
-        get_names_to_pings(interaction.guild),
-        target
+        interaction = interaction,
+        meetings = get_meetings(),
+        names_to_pings = get_names_to_pings(interaction.guild),
+        target = target
     )
 
 @command(
