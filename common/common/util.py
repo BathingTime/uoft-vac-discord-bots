@@ -5,6 +5,7 @@ To be deployed along with bot host files.
 '''
 from discord import Interaction, Message, ButtonStyle, User, Forbidden, Guild
 from discord.ui import View, button, Button
+from discord.abc import GuildChannel
 from discord.ext.commands import Bot
 
 from dotenv import load_dotenv
@@ -190,6 +191,20 @@ async def dm_user(user: User, message: str) -> int:
         await user.send(message)
         return 0
     except Forbidden: return -1
+
+
+async def restrict_to_channel(interaction: Interaction, channel: GuildChannel) -> bool:
+    '''
+    Return True if the interaction is in the given channel.
+    Otherwise, print a message and return False.
+    '''
+    if interaction.channel == channel: return True
+
+    await interaction.response.send_message(
+        f'Please use {channel.mention}.',
+        ephemeral = True
+    )
+    return False
 
 
 async def dm_users_from_names(

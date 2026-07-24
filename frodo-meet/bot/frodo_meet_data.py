@@ -15,6 +15,11 @@ from meeting import (Meeting,
     ATTRIBUTE_SOON,
 )
 
+GETENV_SERVER_ID = 'SERVER_ID'
+GETENV_COMMANDS_CHANNEL_ID = 'COMMANDS_CHANNEL_ID'
+GETENV_NOTIFY_CHANNEL_ID = 'NOTIFY_CHANNEL_ID'
+GETENV_EXEC_ROLE_ID = 'EXEC_ROLE_ID'
+
 
 DATA_FILE_PATH = Path(__file__).resolve().parent / 'meetings_data.json'
 MEETINGS_FILE_KEY = 'meetings'

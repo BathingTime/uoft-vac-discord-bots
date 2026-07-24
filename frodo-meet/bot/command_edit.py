@@ -3,6 +3,7 @@
 from discord import Interaction, SelectOption
 from discord.ui import View, Select
 
+from os import getenv
 from copy import deepcopy
 
 from common.util import (
@@ -24,8 +25,8 @@ from frodo_meet_helper import (
     get_ping_str,
     build_failed_dm_err,
 )
+from frodo_meet_data import save_meetings, GETENV_NOTIFY_CHANNEL_ID
 from frodo_meet_discord_views import MeetingSelectView, RecurrenceSelectView
-from frodo_meet_data import save_meetings
 from meeting import (Meeting,
     ATTRIBUTE_TITLE,
     ATTRIBUTE_TIME,
@@ -384,21 +385,26 @@ async def on_confirm(
     save_meetings()
     print('Updated meeting added, data saved.')
 
-    await interaction.response.edit_message(
+    output = (
+        f'Changes for the {build_target_property_content(target_property)} for {target_meeting.get_title(True)} have been __saved__! ✨\n'
+        f'{updated_meeting.to_discord(full = True)}'
+    )
+
+    await interaction.message.edit(content = output, view = None)
+
+    await interaction.client.get_channel(int(getenv(GETENV_NOTIFY_CHANNEL_ID))).send(
         content = (
-            f'Changes for the {build_target_property_content(target_property)} for {target_meeting.get_title(True)} have been __saved__! ✨\n'
-            f'{updated_meeting.to_discord(full = True)}'
+            f'{output}'
             f'{(
                 f'\n\n{get_ping_str(updated_meeting.get_participants(), names_to_pings)}'
                 if target_property == ATTRIBUTE_TIME else
-
+    
                 f'\n\n{get_ping_str(updated_names, names_to_pings)}'
                 if updated_names else
-
+    
                 ''
             )}'
-        ),
-        view = None
+        ), view = None
     )
 
     failed_dm_users = await dm_users_from_names(

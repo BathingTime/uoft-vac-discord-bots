@@ -2,6 +2,8 @@
 '''
 from discord import Interaction
 
+from os import getenv
+
 from common.util import (
     ConfirmationViewDefault,
     dm_users_from_names,
@@ -14,8 +16,8 @@ from frodo_meet_helper import (
     get_ping_str,
     build_failed_dm_err,
 )
+from frodo_meet_data import save_meetings, GETENV_NOTIFY_CHANNEL_ID
 from frodo_meet_discord_views import MeetingSelectView
-from frodo_meet_data import save_meetings
 from meeting import Meeting
 
 
@@ -114,12 +116,15 @@ async def on_confirm(
     save_meetings()
     print('Target meeting removed, data saved.')
 
-    await interaction.response.edit_message(
-        content = (
-            f'{target_meeting.get_title(True)} has been __deleted__! 💥\n'
-            'More free time on the calendar! 😎\n'
-            f'{get_ping_str(target_meeting.get_participants(), names_to_pings)}'
-        ),
+    output = (
+        f'{target_meeting.get_title(True)} has been __deleted__! 💥\n\n'
+        'More free time on the calendar! 😎'
+    )
+
+    await interaction.message.edit(content = output, view = None)
+
+    await interaction.client.get_channel(int(getenv(GETENV_NOTIFY_CHANNEL_ID))).send(
+        content = f'{output}\n{get_ping_str(target_meeting.get_participants(), names_to_pings)}',
         view = None
     )
 

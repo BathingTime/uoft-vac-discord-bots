@@ -3,6 +3,8 @@
 from discord import Interaction
 from discord.ui import Modal, TextInput
 
+from os import getenv
+
 from common.util import (
     get_response,
     parse_input,
@@ -15,10 +17,11 @@ from frodo_meet_helper import (
     add_meeting,
     is_title_taken,
     verify_names,
+    get_ping_str,
     build_failed_dm_err,
 )
 from frodo_meet_discord_views import RecurrenceSelectView
-from frodo_meet_data import save_meetings
+from frodo_meet_data import save_meetings, GETENV_NOTIFY_CHANNEL_ID
 from meeting import Meeting, PARTICIPANTS_BREAKPOINTS
 from meeting_time import MeetingTime
 
@@ -174,12 +177,16 @@ async def on_confirm(
     save_meetings()
     print('Meeting added, data saved.')
 
-    await interaction.message.edit(
-        content = (
-            f'{new_meeting.get_title(True)} has been __created__! ✨\n'
-            f'{new_meeting.to_discord(full = True, names_to_pings = names_to_pings)}\n\n'
-            'See y\'alls then! 👀'
-        ),
+    output = (
+        f'{new_meeting.get_title(True)} has been __created__! ✨\n'
+        f'{new_meeting.to_discord(full = True)}\n\n'
+        'See y\'alls then! 👀'
+    )
+
+    await interaction.message.edit(content = output, view = None)
+
+    await interaction.client.get_channel(int(getenv(GETENV_NOTIFY_CHANNEL_ID))).send(
+        content = f'{output}\n{get_ping_str(new_meeting.get_participants(), names_to_pings)}',
         view = None
     )
 

@@ -19,12 +19,19 @@ from os import getcwd, getenv
 from common.util import (
     load_local_dotenv,
     chop_output,
+    restrict_to_channel,
     GETENV_BOT_TOKEN,
     DIVIDER_STR,
 )
 
 from frodo_meet_helper import get_names_to_pings
-from frodo_meet_data import load_meetings, get_meetings, save_meetings
+from frodo_meet_data import (
+    load_meetings,
+    get_meetings,
+    save_meetings,
+    GETENV_COMMANDS_CHANNEL_ID,
+    GETENV_NOTIFY_CHANNEL_ID,
+)
 from meeting_time import MeetingTime
 import command_show, command_create, command_delete, command_edit, command_toggle_active
 from frodo_meet_background_tasks import notify_meetings, begin_meetings, dm_notifications
@@ -39,7 +46,7 @@ intents = Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix='.', intents=intents)
+bot = commands.Bot(command_prefix = '.', intents = intents)
 tree = bot.tree
 command = tree.command
 
@@ -54,8 +61,10 @@ async def on_ready():
     await tree.sync()
     print(f'Logged in as {bot.user}.')
 
-    notify_channel = bot.get_channel(int(getenv('NOTIFY_CHANNEL_ID')))
-    if greet_on_boot: await notify_channel.send('Frodomeet clocking in! 🫡')
+    if greet_on_boot:
+        await bot.get_channel(
+            int(getenv(GETENV_COMMANDS_CHANNEL_ID))
+        ).send('Frodomeet clocking in! 🫡')
 
     if background_task is not None:
         print('Background task already exists. 🧐')
@@ -63,7 +72,8 @@ async def on_ready():
 
     print('Beginning background task.')
     background_task = bot.loop.create_task(auto_notify_n_begin(
-        notify_channel, NOTICE_TIME_SECS
+        bot.get_channel(int(getenv(GETENV_NOTIFY_CHANNEL_ID))),
+        NOTICE_TIME_SECS
     ))
 
 
@@ -74,6 +84,10 @@ async def on_ready():
     description = 'Display recorded meeting plans.'
 )
 async def show_meetings(interaction: Interaction, filters: str = '') -> None:
+    if not await restrict_to_channel(interaction,
+        bot.get_channel(int(getenv(GETENV_COMMANDS_CHANNEL_ID)))
+    ): return
+
     print(
         f'{DIVIDER_STR}\n'
         f'Show meetings command prompted, calling command.'
@@ -84,11 +98,16 @@ async def show_meetings(interaction: Interaction, filters: str = '') -> None:
         filters = filters
     )
 
+
 @command(
     name = 'create-meeting',
     description = 'Create a new meeting!'
 )
 async def create_meeting(interaction: Interaction) -> None:
+    if not await restrict_to_channel(interaction,
+        bot.get_channel(int(getenv(GETENV_COMMANDS_CHANNEL_ID)))
+    ): return
+    
     print(
         f'{DIVIDER_STR}\n'
         f'Create meeting command prompted, calling command.'
@@ -99,11 +118,16 @@ async def create_meeting(interaction: Interaction) -> None:
         names_to_pings = get_names_to_pings(interaction.guild)
     )
 
+
 @command(
     name = 'delete-meeting',
     description = 'Delete an existing meeting!'
 )
 async def delete_meeting(interaction: Interaction, target: str = None) -> None:
+    if not await restrict_to_channel(interaction,
+        bot.get_channel(int(getenv(GETENV_COMMANDS_CHANNEL_ID)))
+    ): return
+
     print(
         f'{DIVIDER_STR}\n'
         f'Delete meeting command prompted, calling command.'
@@ -115,11 +139,16 @@ async def delete_meeting(interaction: Interaction, target: str = None) -> None:
         target = target
     )
 
+
 @command(
     name = 'edit-meeting',
     description = 'Edit a property for an existing meeting!'
 )
 async def edit_meeting(interaction: Interaction, target: str = None) -> None:
+    if not await restrict_to_channel(interaction,
+        bot.get_channel(int(getenv(GETENV_COMMANDS_CHANNEL_ID)))
+    ): return
+
     print(
         f'{DIVIDER_STR}\n'
         f'Edit meeting command prompted, calling command.'
@@ -131,11 +160,16 @@ async def edit_meeting(interaction: Interaction, target: str = None) -> None:
         target = target
     )
 
+
 @command(
     name = 'toggle-active',
     description = 'Activate an inactive meeting, or deactivate an active meeting!'
 )
 async def toggle_active(interaction: Interaction, target: str = None) -> None:
+    if not await restrict_to_channel(interaction,
+        bot.get_channel(int(getenv(GETENV_COMMANDS_CHANNEL_ID)))
+    ): return
+
     print(
         f'{DIVIDER_STR}\n'
         f'Toggle active command prompted, calling command.'
@@ -147,21 +181,32 @@ async def toggle_active(interaction: Interaction, target: str = None) -> None:
         target = target
     )
 
+
 @command(
     name = 'help-frodo-meet',
     description = 'Need help with my functions? I got you!'
 )
 async def help_frodo_meet(interaction: Interaction) -> None:
+    if not await restrict_to_channel(interaction,
+        bot.get_channel(int(getenv(GETENV_COMMANDS_CHANNEL_ID)))
+    ): return
+
     print(
         f'{DIVIDER_STR}\n'
         f'Help command prompted, calling command.'
     )
     ...
 
+
 @command(
     name = 'hi-frodo-meet',
+    description = '🧐'
 )
 async def hi_frodo_meet(interaction: Interaction) -> None:
+    if not await restrict_to_channel(interaction,
+        bot.get_channel(int(getenv(GETENV_COMMANDS_CHANNEL_ID)))
+    ): return
+
     print(
         f'{DIVIDER_STR}\n'
         f'Hi command prompted, calling command.'

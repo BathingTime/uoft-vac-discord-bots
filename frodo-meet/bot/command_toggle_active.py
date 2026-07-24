@@ -2,6 +2,8 @@
 '''
 from discord import Interaction
 
+from os import getenv
+
 from common.util import (
     ConfirmationViewDefault,
     dm_users_from_names,
@@ -13,8 +15,8 @@ from frodo_meet_helper import (
     get_ping_str,
     build_failed_dm_err,
 )
+from frodo_meet_data import save_meetings, GETENV_NOTIFY_CHANNEL_ID
 from frodo_meet_discord_views import MeetingSelectView
-from frodo_meet_data import save_meetings
 from meeting import Meeting
 
 
@@ -115,14 +117,18 @@ async def on_confirm(
     save_meetings()
     print('Active status on target meeting toggled, data saved.')
 
-    await interaction.response.edit_message(
-        content = (
-            f'{title} has been __{(
-                'activated__! 🔊' if new_active else 'deactivated__! 🔇'
-            )}\n'
-            f'{target_meeting.to_discord(full = True, names_to_pings = names_to_pings)}\n\n'
-            f'{'Let\'s do this! 🫡' if new_active else 'Take a breather! 😙'}'
-        ),
+    output = (
+        f'{title} has been __{(
+            'activated__! 🔊' if new_active else 'deactivated__! 🔇'
+        )}\n'
+        f'{target_meeting.to_discord(full = True)}\n\n'
+        f'{'Let\'s do this! 🫡' if new_active else 'Take a breather! 😙'}'
+    )
+
+    await interaction.message.edit(content = output, view = None)
+
+    await interaction.client.get_channel(int(getenv(GETENV_NOTIFY_CHANNEL_ID))).send(
+        content = f'{output}\n{get_ping_str(target_meeting.get_participants(), names_to_pings)}',
         view = None
     )
 

@@ -4,6 +4,7 @@ from discord import Guild, User
 
 from os import getenv
 
+from frodo_meet_data import GETENV_EXEC_ROLE_ID
 from meeting import Meeting
 
 
@@ -169,7 +170,7 @@ def get_names_to_pings(guild: Guild) -> dict[str: str]:
         names_to_pings[role.name.lower()] = f'<@&{role.id}>'
 
     # Users (execs only):
-    for member in guild.get_role(int(getenv('EXEC_ROLE_ID'))).members:
+    for member in guild.get_role(int(getenv(GETENV_EXEC_ROLE_ID))).members:
         names_to_pings[member.display_name.lower()] = f'<@{member.id}>'
     
     # print(names_to_pings)
